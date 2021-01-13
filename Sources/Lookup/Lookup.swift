@@ -39,7 +39,8 @@ public struct Lookup {
         } else if let anyDict = any as? [String: Any?] {
             self.init(anyDict)
         } else {
-            return nil
+            self.init(mirrors(reflecting: any))
+            self.originValue = any
         }
     }
     
@@ -73,9 +74,9 @@ public struct Lookup {
 public extension Lookup {
     
     struct Value {
-        public var originValue: Any?
+        public var value: Any?
         public init(_ value: Any?) {
-            self.originValue = value
+            self.value = value
         }
     }
     
@@ -84,7 +85,7 @@ public extension Lookup {
 public extension Lookup.Value {
     
     var string: String? {
-        originValue as? String
+        value as? String
     }
     var stringValue: String {
         string!
@@ -139,9 +140,9 @@ public extension Lookup.Value {
     }
     
     var dict: [String: Any]? {
-        if let originDict = originValue as? [String: Any] {
+        if let originDict = value as? [String: Any] {
             return originDict
-        } else if let originString = originValue as? String,
+        } else if let originString = value as? String,
                   let stringData = originString.data(using: .utf8) {
             return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
         } else {
@@ -153,7 +154,7 @@ public extension Lookup.Value {
     }
     
     var array: [Any]? {
-        if let originArray = originValue as? [Any] {
+        if let originArray = value as? [Any] {
             return originArray
         }
         return nil
