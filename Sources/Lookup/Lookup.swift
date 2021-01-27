@@ -4,7 +4,12 @@ import UIKit
 public struct Lookup {
     
     public var originValue: Any?
+    
     public var dict: [String: Any?] = [:]
+    
+    public var filteredDict: [String: Any] {
+        dict.compactMapValues({ $0 })
+    }
     
     public init?(_ dict: [String: Any?]) {
         if dict.count == 0 {
@@ -12,7 +17,7 @@ public struct Lookup {
         }
         
         self.originValue = dict
-        self.dict = dict.compactMapValues({ $0 })
+        self.dict = dict
     }
     
     public init?(_ string: String?) {
@@ -75,7 +80,8 @@ public extension Lookup {
     
     struct Value {
         public var value: Any?
-        public init(_ value: Any?) {
+        
+        init(_ value: Any?) {
             self.value = value
         }
     }
