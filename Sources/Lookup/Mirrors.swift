@@ -4,20 +4,6 @@
 
 import UIKit
 
-extension Dictionary {
-    /// Merges the dictionary with dictionaries passed. The latter dictionaries will override
-    /// values of the keys that are already set
-    ///
-    /// - parameter dictionaries: A comma seperated list of dictionaries
-    mutating func merge<K, V>(dictionaries: Dictionary<K, V>...) {
-        for dict in dictionaries {
-            for (key, value) in dict {
-                self.updateValue(value as! Value, forKey: key as! Key)
-            }
-        }
-    }
-}
-
 func canMirrorInto(_ reflecting: Any?) -> Bool {
     guard let ref = reflecting else { return false }
     let mirror = Mirror(reflecting: ref)
@@ -33,7 +19,7 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     let mirror = Mirror(reflecting: reflecting)
     for child in mirror.children {
         if canMirrorInto(child.value) {
-            map.merge(dictionaries: mirrors(reflecting: child.value, each))
+            map.merge(mirrors(reflecting: child.value, each), uniquingKeysWith: { $1 })
             continue
         }
         if let label = child.label, label.count > 0 {
@@ -46,7 +32,7 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     while superMirror != nil {
         for child in superMirror!.children {
             if canMirrorInto(child.value) {
-                map.merge(dictionaries: mirrors(reflecting: child.value, each))
+                map.merge(mirrors(reflecting: child.value, each), uniquingKeysWith: { $1 })
                 continue
             }
             if let label = child.label, label.count > 0 {

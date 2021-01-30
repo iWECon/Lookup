@@ -1,9 +1,9 @@
 import UIKit
 
 @dynamicMemberLookup
-public struct Lookup {
+public struct Lookup: CustomStringConvertible, CustomDebugStringConvertible {
     
-    public var originValue: Any?
+    public var originValue: Any
     
     public var dict: [String: Any?] = [:]
     
@@ -74,6 +74,18 @@ public struct Lookup {
     public subscript (_ dynamicMember: String) -> Value {
         self[dynamicMember: dynamicMember]
     }
+    
+    public var description: String {
+        if let data = try? JSONSerialization.data(withJSONObject: originValue, options: .prettyPrinted),
+           let prettyString = String(data: data, encoding: .utf8) {
+            return prettyString
+        }
+        return "\(originValue)"
+    }
+    
+    public var debugDescription: String {
+        description
+    }
 }
 
 public extension Lookup {
@@ -91,8 +103,12 @@ public extension Lookup {
 public extension Lookup.Value {
     
     var string: String? {
-        value as? String
+        guard let v = value else {
+            return nil
+        }
+        return "\(v)"
     }
+    
     var stringValue: String {
         string!
     }
