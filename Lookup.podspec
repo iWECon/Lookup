@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
     s.license = { :type => 'MIT' }
     s.ios.deployment_target = '10.0'
     
-    s.source = { :git => '.' }
+    s.source = { :git => 'https://github.com/iWECon/Lookup.git', :tag => "#{s.version}" }
     s.source_files = [
         'Sources/**/*.swift',
     ]
