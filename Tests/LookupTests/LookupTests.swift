@@ -7,15 +7,26 @@ final class LookupTests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
         
-        // support json string to initialize
-        if let lookup = Lookup("{\"code\":200,\"msg\":\"success\",\"data\":{\"cat\":{\"id\":12345,\"name\":\"Kitty\"}}}") {
-            print(lookup["data.cat.name"].stringValue)
+        let dict: [String : Any] = [
+            "code": 200,
+            "success": 1,
+            "result": [
+                "pageNumber": 1,
+                "hasMore": false,
+            ]
+        ]
+        
+        guard let lookup = Lookup(dict),
+              let result = Lookup(lookup.result.dict)
+        else {
+            fatalError("lookup initialize failed.")
         }
         
-        // supoort dict [String: Any?] to initialize, auto clear key if the value is nil
-        if let lookup = Lookup(["value": nil, "name": "Hello"]) {
-            print(lookup.name.stringValue)
-        }
+        XCTAssertEqual(lookup["result.pageNumber"].int, 1, "the pageNumber is not 1")
+        XCTAssertEqual(lookup["result.hasMore"].bool, false, "the hasMore is not false")
+        
+        XCTAssertEqual(result.pageNumber.int, 1, "the pageNumber is not 1")
+        XCTAssertEqual(result.hasMore.int, 0, "the hasMore is not 0")
     }
 
     static var allTests = [
