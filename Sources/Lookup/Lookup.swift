@@ -102,6 +102,7 @@ public extension Lookup {
 
 public extension Lookup.Value {
     
+    // MARK: - String
     var string: String? {
         guard let v = value else {
             return nil
@@ -113,6 +114,7 @@ public extension Lookup.Value {
         string!
     }
     
+    // MARK: - Float
     var float: Float? {
         (string as NSString?)?.floatValue
     }
@@ -120,6 +122,37 @@ public extension Lookup.Value {
         float!
     }
     
+    var float16: Float16? {
+        if let string = string {
+            return .init(string)
+        }
+        return nil
+    }
+    var float16Value: Float16 {
+        float16!
+    }
+    
+    var float32: Float32? {
+        if let string = string {
+            return .init(string)
+        }
+        return nil
+    }
+    var float32Value: Float32 {
+        float32!
+    }
+    
+    var float64: Float64? {
+        if let string = string {
+            return .init(string)
+        }
+        return nil
+    }
+    var float64Value: Float64 {
+        float64!
+    }
+    
+    // MARK: - Double
     var double: Double? {
         (string as NSString?)?.doubleValue
     }
@@ -127,9 +160,10 @@ public extension Lookup.Value {
         double!
     }
     
+    // MARK: - UInt
     var uInt: UInt? {
-        if let int = int {
-            return UInt(int)
+        if let string = string {
+            return .init(string)
         }
         return nil
     }
@@ -137,6 +171,37 @@ public extension Lookup.Value {
         uInt!
     }
     
+    var uInt16: UInt16? {
+        if let string = string {
+            return .init(string)
+        }
+        return nil
+    }
+    var uInt16Value: UInt16 {
+        uInt16!
+    }
+    
+    var uInt32: UInt32? {
+        if let string = string {
+            return .init(string)
+        }
+        return nil
+    }
+    var uInt32Value: UInt32 {
+        uInt32!
+    }
+    
+    var uInt64: UInt64? {
+        if let string = string {
+            return .init(string)
+        }
+        return nil
+    }
+    var uInt64Value: UInt64 {
+        uInt64!
+    }
+    
+    // MARK: - Int
     var int: Int? {
         (string as NSString?)?.integerValue
     }
@@ -144,16 +209,31 @@ public extension Lookup.Value {
         int!
     }
     
-    var int64: Int64? {
-        if let value = (string as NSString?)?.integerValue {
-            return Int64(value)
+    var int16: Int16? {
+        if let string = string {
+            return .init(string)
         }
         return nil
+    }
+    var int16Value: Int16 {
+        int16!
+    }
+    
+    var int32: Int32? {
+        (string as NSString?)?.intValue
+    }
+    var int32Value: Int32 {
+        int32!
+    }
+    
+    var int64: Int64? {
+        (string as NSString?)?.longLongValue
     }
     var int64Value: Int64 {
         int64!
     }
     
+    // MARK: - Bool
     var bool: Bool? {
         (string as NSString?)?.boolValue
     }
@@ -161,6 +241,7 @@ public extension Lookup.Value {
         (string! as NSString).boolValue
     }
     
+    // MARK: - Dict
     var dict: [String: Any]? {
         if let originDict = value as? [String: Any] {
             return originDict
@@ -175,6 +256,7 @@ public extension Lookup.Value {
         dict!
     }
     
+    // MARK: - Array
     var array: [Any]? {
         if let originArray = value as? [Any] {
             return originArray
