@@ -114,6 +114,14 @@ public extension Lookup.Value {
         string!
     }
     
+    /**
+    /// A 32-bit floating point type.
+    public typealias Float32 = Float
+    
+    /// A 64-bit floating point type.
+    public typealias Float64 = Double
+     */
+    
     // MARK: - Float
     var float: Float? {
         (string as NSString?)?.floatValue
@@ -122,34 +130,16 @@ public extension Lookup.Value {
         float!
     }
     
+    @available(iOS 14.0, *)
     var float16: Float16? {
         if let string = string {
             return .init(string)
         }
         return nil
     }
+    @available(iOS 14.0, *)
     var float16Value: Float16 {
         float16!
-    }
-    
-    var float32: Float32? {
-        if let string = string {
-            return .init(string)
-        }
-        return nil
-    }
-    var float32Value: Float32 {
-        float32!
-    }
-    
-    var float64: Float64? {
-        if let string = string {
-            return .init(string)
-        }
-        return nil
-    }
-    var float64Value: Float64 {
-        float64!
     }
     
     // MARK: - Double
