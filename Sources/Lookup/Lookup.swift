@@ -1,4 +1,8 @@
+#if os(macOS)
+import AppKit
+#else
 import UIKit
+#endif
 
 @dynamicMemberLookup
 public struct Lookup: CustomStringConvertible, CustomDebugStringConvertible {
@@ -130,6 +134,7 @@ public extension Lookup.Value {
         float!
     }
     
+    #if os(iOS)
     @available(iOS 14.0, *)
     var float16: Float16? {
         if let string = string {
@@ -141,6 +146,7 @@ public extension Lookup.Value {
     var float16Value: Float16 {
         float16!
     }
+    #endif
     
     // MARK: - Double
     var double: Double? {
