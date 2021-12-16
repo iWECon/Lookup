@@ -22,12 +22,8 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     
     let mirror = Mirror(reflecting: reflecting)
     for child in mirror.children {
-        if canMirrorInto(child.value) {
-            map.merge(mirrors(reflecting: child.value, each), uniquingKeysWith: { $1 })
-            continue
-        }
         if let label = child.label, label.count > 0 {
-            map[label] = child.value
+            map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : child.value
         }
         each?(child.label, child.value)
     }
@@ -35,12 +31,8 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     var superMirror = mirror.superclassMirror
     while superMirror != nil {
         for child in superMirror!.children {
-            if canMirrorInto(child.value) {
-                map.merge(mirrors(reflecting: child.value, each), uniquingKeysWith: { $1 })
-                continue
-            }
             if let label = child.label, label.count > 0 {
-                map[label] = child.value
+                map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : child.value
             }
             each?(child.label, child.value)
         }
