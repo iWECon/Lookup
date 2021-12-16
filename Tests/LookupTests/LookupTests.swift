@@ -24,6 +24,8 @@ final class LookupTests: XCTestCase {
         ] as [String : Any?]
         
         let lookup = Lookup(dict)
+        print(lookup)
+        
         XCTAssertTrue(lookup["values.[0].name"].string == "你好")
         XCTAssertTrue(lookup["values.[1].name"].string == "世界")
         XCTAssertTrue(lookup["values.[10].name"].isNil)
@@ -82,6 +84,14 @@ final class LookupTests: XCTestCase {
         XCTAssertTrue(lookup.name.string == "Tiger")
         XCTAssertTrue(lookup["eat.name"].string == "Meat")
         XCTAssertTrue(lookup.age.intValue == 4)
+    }
+    
+    func testMerging() {
+        let a = ["name": "kevin", "age": 14] as [String : Any]
+        let b = ["name": "kevins", "city": "hangzhou"]
+        
+        let merged = [Lookup(a), Lookup(b)].merging(uniquingKeysWith: { $1 })
+        print(merged.description)
     }
     
     static var allTests = [

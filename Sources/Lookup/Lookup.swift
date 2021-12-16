@@ -4,6 +4,21 @@ import AppKit
 import UIKit
 #endif
 
+public extension Array where Element == Lookup {
+    
+    /// Merging multi rawDict into one
+    /// - Parameter uniquingKeysWith: uniquing keys with conflict
+    /// - Returns: Merged `Lookup`
+    func merging(uniquingKeysWith: (Any, Any) -> Any) -> Lookup {
+        let dictLookups = self.filter({ $0.rawType == .dict })
+        var temp: [String: Any] = [:]
+        for value in dictLookups {
+            temp.merge(value.rawDict, uniquingKeysWith: uniquingKeysWith)
+        }
+        return Lookup(temp)
+    }
+}
+
 fileprivate extension String {
     func between(left: String, _ right: String) -> String? {
         return (range(of: left)?.upperBound).flatMap { substringFrom in
@@ -41,7 +56,7 @@ fileprivate func unwrap(_ object: Any) -> Any {
 @dynamicMemberLookup
 public struct Lookup: CustomStringConvertible {
     
-    private enum RawType {
+    public enum RawType {
         case none
         case dict
         case array
@@ -50,10 +65,9 @@ public struct Lookup: CustomStringConvertible {
     
     public private(set) var object: Any
     
-    private let rawType: RawType
-    private var rawDict: [String: Any] = [:]
-    private var rawArray: [Any] = []
-    
+    public let rawType: RawType
+    public private(set) var rawDict: [String: Any] = [:]
+    public private(set) var rawArray: [Any] = []
     
     private init(jsonObject: Any) {
         self.object = jsonObject
