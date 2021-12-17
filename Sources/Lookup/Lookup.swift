@@ -48,7 +48,7 @@ fileprivate func unwrap(_ object: Any) -> Any {
         return d
         
     case let array as [Any]:
-        return array
+        return array.map(unwrap)
         
     default:
         return object
