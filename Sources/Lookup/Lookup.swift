@@ -33,6 +33,8 @@ fileprivate func unwrap(_ object: Any) -> Any {
     switch object {
     case let number as NSNumber:
         return number
+    case let str as String:
+        return str
     case _ as NSNull:
         return NSNull()
     case nil:
