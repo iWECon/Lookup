@@ -87,8 +87,8 @@ final class LookupTests: XCTestCase {
     }
     
     func testMerging() {
-        let a = ["name": "kevin", "age": 14] as [String : Any]
-        let b = ["name": "kevins", "city": "hangzhou"]
+        let a: [String: Any?] = ["name": "kevin", "age": 14]
+        let b: [String: Any?] = ["name": "kevins", "city": "hangzhou"]
         
         let merged = [Lookup(a), Lookup(b)].merging(uniquingKeysWith: { $1 })
         print(merged.description)
