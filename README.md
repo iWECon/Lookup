@@ -13,7 +13,9 @@
 
 2.1.0 对 2.0.0 以来的数据获取做了优化
 
-初始化的思路以及类型判断借鉴于 [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON)
+初始化的思路以及类型判断学习和借鉴自 [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON)
+
+基本包含 SwiftyJSON 的所有功能 ~
 
 现在用起来更舒服, 版本向下兼容 ~
 
@@ -24,7 +26,7 @@ lookup.data.cat.id.intValue      // return 12345
 lookup.data.cat.id.stringValue   // return "12345". 即使json 中为数字, 依然可以转为字符串
 ```
 
-支持链式取值，且不用数如何 "[" 和 "]" 取值：
+支持链式取值，且不用使用 "[" 和 "]" 即可取值：
 
 ```swift
 let dict = [
@@ -52,6 +54,10 @@ lookup.values.10.name.isNone      // return true
 lookup.result.point.doubleValue   // return 3.1315826
 lookup.result.point.stringValue   // return "3.1315826"
 ```
+
+上面两个例子应该可以发现，可以模糊类型取值：
+例如：JSON 中是 1， 可以取 string "1" 也可以取 float/double 1.0
+JSON 中是 "1", 也可以取 int/float/double 1/1.0
 
 
 Struct 或 Class 初始化:
