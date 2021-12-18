@@ -10,22 +10,20 @@ public extension Array where Element == Lookup {
     /// - Parameter uniquingKeysWith: uniquing keys with conflict
     /// - Returns: Merged `Lookup`
     func merging(uniquingKeysWith: (Any, Any) -> Any) -> Lookup {
-        let dictLookups = self.filter({ $0.rawType == .dict })
+        let dictLookups = self.compactMap({ $0.dict })
         var temp: [String: Any] = [:]
         for value in dictLookups {
-            temp.merge(value.rawDict, uniquingKeysWith: uniquingKeysWith)
+            temp.merge(value, uniquingKeysWith: uniquingKeysWith)
         }
         return Lookup(temp)
     }
 }
 
 fileprivate extension String {
-    func between(left: String, _ right: String) -> String? {
-        return (range(of: left)?.upperBound).flatMap { substringFrom in
-            (range(of: right, range: substringFrom..<endIndex)?.lowerBound).map { substringTo in
-                String(self[substringFrom..<substringTo])
-            }
-        }
+    var isPurnInt: Bool {
+        let scan: Scanner = Scanner(string: self)
+        var val: Int = 0
+        return scan.scanInt(&val) && scan.isAtEnd
     }
 }
 
@@ -63,32 +61,53 @@ public struct Lookup: CustomStringConvertible {
         case dict
         case array
         case object
+        case number
+        case string
     }
     
-    public private(set) var object: Any
+    fileprivate private(set) var object: Any
+    public var rawValue: Any { object }
     
-    public let rawType: RawType
-    public private(set) var rawDict: [String: Any] = [:]
-    public private(set) var rawArray: [Any] = []
+    fileprivate let rawType: RawType
+    fileprivate private(set) var rawDict: [String: Any] = [:]
+    fileprivate private(set) var rawArray: [Any] = []
+    fileprivate private(set) var rawString: String = ""
+    fileprivate private(set) var rawNumber: NSNumber = .init()
     
     private init(jsonObject: Any) {
         self.object = jsonObject
         
-        switch unwrap(object) {
-        case let dictionry as [String: Any]:
-            self.rawDict = dictionry
-            self.rawType = .dict
-            
-        case let array as [Any]:
-            self.rawArray = array
-            self.rawType = .array
-            
-        case _ as AnyObject:
-            self.rawDict = mirrors(reflecting: jsonObject)
-            self.rawType = .object
+        switch jsonObject {
+        case Optional<Any>.none:
+            self.rawType = .none
+        case _ as NSNull:
+            self.rawType = .none
             
         default:
-            self.rawType = .none
+            switch unwrap(object) {
+            case let number as NSNumber:
+                self.rawNumber = number
+                self.rawType = .number
+                
+            case let str as String:
+                self.rawString = str
+                self.rawType = .string
+                
+            case let dictionry as [String: Any]:
+                self.rawDict = dictionry
+                self.rawType = .dict
+                
+            case let array as [Any]:
+                self.rawArray = array
+                self.rawType = .array
+                
+            case _ as AnyObject:
+                self.rawDict = mirrors(reflecting: jsonObject)
+                self.rawType = .object
+                
+            default:
+                self.rawType = .none
+            }
         }
     }
     
@@ -104,13 +123,18 @@ public struct Lookup: CustomStringConvertible {
         try self.init(data: stringData)
     }
     
+    /// Support JSON-Data, String of JSON, Array, Dictionary, Struct object and Class object
     public init(_ object: Any) {
         switch object {
         case let str as String:
-            do {
-                try self.init(jsonString: str)
-            } catch {
-                self.init(jsonObject: NSNull())
+            if JSONSerialization.isValidJSONObject(object)  {
+                do {
+                    try self.init(jsonString: str)
+                } catch {
+                    self.init(jsonObject: NSNull())
+                }
+            } else {
+                self.init(jsonObject: object)
             }
         case let data as Data:
             do {
@@ -124,7 +148,7 @@ public struct Lookup: CustomStringConvertible {
     }
     
     
-    public subscript (dynamicMember dynamicMember: String) -> Value {
+    public subscript (dynamicMember dynamicMember: String) -> Lookup {
         if dynamicMember.contains(".") {
             var keys = dynamicMember.components(separatedBy: ".")
             
@@ -139,108 +163,97 @@ public struct Lookup: CustomStringConvertible {
                     
                     let newKey = keys.joined(separator: ".")
                     return innerLookup[dynamicMember: newKey]
-                case .array:
-                    if let indexStringKey = key.between(left: "[", "]"),
-                        let intKey = Int(indexStringKey),
-                       intKey < rawArray.count {
-                        let value = rawArray[intKey]
-                        let innerLookup = Lookup(value)
+                case .array, .string:
+                    if key.isPurnInt, let index = Int(key) {
                         keys.removeFirst()
                         
                         let newKey = keys.joined(separator: ".")
-                        return innerLookup[dynamicMember: newKey]
+                        return self[index][dynamicMember: newKey]
                     }
+                    return .null
+                default:
                     return .null
                 }
             }
-            return Value.null
+            return .null
         }
         
         switch rawType {
         case .dict, .object:
-            return Value(rawDict[dynamicMember, default: NSNull()])
+            return Lookup(rawDict[dynamicMember, default: NSNull()])
+        case .array, .string:
+            if dynamicMember.isPurnInt,
+                let index = Int(dynamicMember)
+            {
+                return self[index]
+            }
+            return .null
         default:
             return .null
         }
     }
     
-    public subscript (_ dynamicMember: String) -> Value {
+    public subscript (_ dynamicMember: String) -> Lookup {
         self[dynamicMember: dynamicMember]
     }
     
-    public subscript (_ memberIndex: Int) -> Value {
+    public subscript (_ memberIndex: Int) -> Lookup {
         switch rawType {
+        case .string:
+            if let convertedArray = array, memberIndex < convertedArray.count {
+                return Lookup(convertedArray[memberIndex])
+            }
+            return .null
         case .array:
             if memberIndex > rawArray.count {
                 return .null
             }
-            return Value(rawArray[memberIndex])
+            return Lookup(rawArray[memberIndex])
         default:
             return .null
         }
     }
     
     public var description: String {
+        var desc = ""
         switch rawType {
-        case .none:
-            return "\(object)"
         case .dict, .object:
-            return rawDict.description
+            desc = rawDict.description
         case .array:
-            return rawArray.description
+            desc = rawArray.description
+        case .number:
+            desc = "\(rawNumber)"
+        case .string:
+            desc = "\(object)"
+        case .none:
+            desc = "nil"
         }
+        return "{ rawType: \(rawType), description: \(desc) }"
     }
+    
+    fileprivate static var null: Lookup { Lookup(NSNull()) }
 }
 
 public extension Lookup {
     
-    struct Value: CustomStringConvertible {
-        private let value: Any
-        
-        init(_ value: Any) {
-            self.value = unwrap(value)
-        }
-        
-        public var description: String {
-            switch rawValue {
-            case .some(let v):
-                return "\(v)"
-            case .none:
-                return "nil"
-            }
-        }
-        
-        public var rawValue: Any? {
-            switch value {
-            case _ as NSNull:
-                return nil
-            case nil:
-                return nil
-            default:
-                return value
-            }
-        }
-        
-        public var isNil: Bool {
-            rawValue == nil
-        }
-        public var isSome: Bool {
-            !isNil
-        }
-        
-        fileprivate static var null: Value { Value(NSNull()) }
+    var isNone: Bool {
+        rawType == .none
     }
     
-}
-
-public extension Lookup.Value {
+    var isSome: Bool {
+        !isNone
+    }
     
     // MARK: - String
     var string: String? {
-        guard let v = rawValue else {
+        switch rawType {
+        case .number:
+            return "\(rawNumber)"
+        case .string:
+            return rawString
+        default:
             return nil
         }
-        return "\(v)"
     }
     
     var stringValue: String {
@@ -368,12 +381,17 @@ public extension Lookup.Value {
     
     // MARK: - Dict
     var dict: [String: Any]? {
-        if let originDict = rawValue as? [String: Any] {
-            return originDict
-        } else if let originString = value as? String,
-                  let stringData = originString.data(using: .utf8) {
-            return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
-        } else {
+        switch rawType {
+        case .dict:
+            return rawDict
+        case .string:
+            if let originString = object as? String,
+                let stringData = originString.data(using: .utf8)
+            {
+                    return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
+            }
+            return nil
+        default:
             return nil
         }
     }
@@ -383,10 +401,19 @@ public extension Lookup.Value {
     
     // MARK: - Array
     var array: [Any]? {
-        if let originArray = rawValue as? [Any] {
-            return originArray
+        switch rawType {
+        case .array:
+            return rawArray
+        case .string:
+            if let originString = object as? String,
+               let stringData = originString.data(using: .utf8)
+            {
+                return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [Any]
+            }
+            return nil
+        default:
+            return nil
         }
-        return nil
     }
     var arrayValue: [Any] {
         array!
