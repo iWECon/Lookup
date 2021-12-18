@@ -13,7 +13,7 @@
 
 2.1.0 对 2.0.0 以来的数据获取做了优化
 
-初始化的思路以及类型判断借鉴于 (SwiftyJSON)[https://github.com/SwiftyJSON/SwiftyJSON]
+初始化的思路以及类型判断借鉴于 [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON)
 
 现在用起来更舒服, 版本向下兼容 ~
 
