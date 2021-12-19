@@ -56,7 +56,9 @@ lookup.result.point.stringValue   // return "3.1315826"
 ```
 
 上面两个例子应该可以发现，可以模糊类型取值：
+
 例如：JSON 中是 1， 可以取 string "1" 也可以取 float/double 1.0
+
 JSON 中是 "1", 也可以取 int/float/double 1/1.0
 
 

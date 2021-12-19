@@ -100,7 +100,8 @@ final class LookupTests: XCTestCase {
     static var allTests = [
         ("testExample", testExample),
         ("testStruct", testStruct),
-        ("testClass", testClass)
+        ("testClass", testClass),
+        ("testLookups", testLookups)
     ]
     
     func testLookups() throws {
@@ -137,6 +138,9 @@ final class LookupTests: XCTestCase {
         XCTAssertTrue(lookup.friends.1.age.rawValue as? Int == 22)
         XCTAssertTrue(lookup.friends.1.age.rawValue as? String == nil)
         XCTAssertTrue(lookup.friends.1.age.string == "22")
+        XCTAssertTrue(lookup.age.floatValue == 24.0)
+        XCTAssertTrue(lookup.age.doubleValue == 24.0)
+        XCTAssertTrue(lookup.age.stringValue == "24")
         
         XCTAssertTrue(lookup["favorite"].isNone)
         XCTAssertTrue(lookup.favorite.isNone)
