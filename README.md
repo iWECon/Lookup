@@ -123,6 +123,6 @@ func testClass() {
 ```swift
 // for swift-tools-version: 5.3
 // swift 5.0 +
-.package(url: "https://github.com/iWECon/Lookup", from: "2.0.4")
+.package(url: "https://github.com/iWECon/Lookup", from: "2.1.0")
 ```
 
