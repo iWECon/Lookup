@@ -2,6 +2,16 @@ import XCTest
 @testable import Lookup
 
 final class LookupTests: XCTestCase {
+    struct Model: LookupModel {
+        var lookup: Lookup
+        var nickname: String {
+            member(for: "nickname")!
+        }
+    }
+    func testModel() {
+        let model = Model(lookup: .init(["nickname": "hello"]))
+        XCTAssertTrue(model.nickname == "hello")
+    }
     
     func testExample() {
         // This is an example of a functional test case.
