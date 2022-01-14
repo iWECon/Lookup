@@ -4,6 +4,7 @@ import AppKit
 import UIKit
 #endif
 
+// MARK: - extension Array Helper merging multi lookup into one lookup
 public extension Array where Element == Lookup {
     
     /// Merging multi rawDict into one
@@ -19,6 +20,7 @@ public extension Array where Element == Lookup {
     }
 }
 
+// MARK: - Helper for String
 fileprivate extension String {
     var isPurnInt: Bool {
         let scan: Scanner = Scanner(string: self)
@@ -27,6 +29,7 @@ fileprivate extension String {
     }
 }
 
+// MARK: Unwrap
 fileprivate func unwrap(_ object: Any) -> Any {
     switch object {
     case let number as NSNumber:
@@ -53,6 +56,7 @@ fileprivate func unwrap(_ object: Any) -> Any {
     }
 }
 
+// MARK: - Lookup
 @dynamicMemberLookup
 public struct Lookup: CustomStringConvertible {
     
@@ -234,6 +238,7 @@ public struct Lookup: CustomStringConvertible {
     fileprivate static var null: Lookup { Lookup(NSNull()) }
 }
 
+// MARK: - Convert
 public extension Lookup {
     
     var isNone: Bool {
@@ -276,7 +281,7 @@ public extension Lookup {
         float!
     }
     
-    #if os(iOS)
+    #if !targetEnvironment(macCatalyst) && os(iOS)
     @available(iOS 14.0, *)
     var float16: Float16? {
         if let string = string {
