@@ -56,6 +56,14 @@ fileprivate func unwrap(_ object: Any) -> Any {
     }
 }
 
+// fix print(lookup) error: `display Found unexpected null pointer value while trying to cast value of type 'NSNumber'`
+extension NSNumber: Swift.CustomReflectable {
+    public var customMirror: Mirror {
+        let mirror = Mirror(reflecting: self)
+        return mirror
+    }
+}
+
 // MARK: - Lookup
 @dynamicMemberLookup
 public struct Lookup: CustomStringConvertible {
@@ -219,7 +227,7 @@ public struct Lookup: CustomStringConvertible {
     }
     
     public var description: String {
-        var desc = ""
+        let desc: String
         switch rawType {
         case .dict, .object:
             desc = rawDict.description
@@ -232,7 +240,12 @@ public struct Lookup: CustomStringConvertible {
         case .none:
             desc = "nil"
         }
-        return "{ rawType: \(rawType), description: \(desc) }"
+        return """
+{
+  rawType: \(rawType),
+  description: \(desc)
+}
+"""
     }
     
     fileprivate static var null: Lookup { Lookup(NSNull()) }
