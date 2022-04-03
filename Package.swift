@@ -15,5 +15,6 @@ let package = Package(
     targets: [
         .target(name: "Lookup", dependencies: []),
         .testTarget(name: "LookupTests", dependencies: ["Lookup"])
-    ]
+    ],
+    swiftLanguageVersions: [.v5]
 )

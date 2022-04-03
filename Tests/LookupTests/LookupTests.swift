@@ -151,4 +151,84 @@ final class LookupTests: XCTestCase {
         XCTAssertTrue(lookup.jsonstring.1.e.string == "5")
         XCTAssertTrue(lookup.jsonstring.10.a.isNone)
     }
+    
+    func testCodable() throws {
+        
+        let dict = [
+            "code": 200,
+            "success": 1,
+            "result": [
+                "pageNumber": 1,
+                "hasMore": false,
+                "messages": nil,
+                "point": 3.1415926
+            ],
+            "values": [
+                ["name": "你好"],
+                ["name": "世界"]
+            ]
+        ] as [String : Any?]
+        
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        let lookup = try JSONDecoder().decode(Lookup.self, from: data)
+        XCTAssertTrue(lookup.code.int == 200)
+        XCTAssertTrue(lookup.success.int == 1)
+        XCTAssertTrue(lookup.success.string == "1")
+        XCTAssertTrue(lookup.result.pageNumber.int == 1)
+        XCTAssertTrue(lookup.values.0.name.string == "你好")
+        XCTAssertTrue(lookup.values.1.name.string == "世界")
+    }
+    
+    func testEncodable() throws {
+        let dict = [
+            "code": 200,
+            "success": 1,
+            "result": [
+                "pageNumber": 1,
+                "hasMore": false,
+                "messages": nil,
+                "point": 3.1415926
+            ],
+            "values": [
+                ["name": "你好"],
+                ["name": "世界"]
+            ]
+        ] as [String : Any]
+        
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        let lookup = try JSONDecoder().decode(Lookup.self, from: data)
+        
+        let encodeData = try JSONEncoder().encode(lookup)
+        let encoderDict = try! JSONSerialization.jsonObject(with: encodeData, options: []) as! [String: Any]
+        XCTAssertTrue(encoderDict["code"] as! NSNumber == 200)
+        
+        let r = encoderDict["values"] as? [[String: String]]
+        let r1 = r?[0]
+        let r1Name = r1?["name"]
+        XCTAssertTrue(r1Name == "你好")
+        
+        let rr = encoderDict["result"] as? [String: Any]
+        let messages = rr?["messages"]
+        print(lookup)
+        XCTAssertTrue(messages is NSNull)
+        
+        let arr = [
+            1, 2, 3, "4", 5, "6"
+        ] as [Any]
+        print(Lookup(arr))
+        
+        
+        let dictt: [String: Any] = [
+            "name": "iww",
+            "age": 26
+        ]
+        let dataa = try JSONSerialization.data(withJSONObject: dictt)
+        let t = try JSONDecoder().decode(Test.self, from: dataa)
+        XCTAssertTrue(t.name == "iww")
+    }
+    
+    struct Test: Codable {
+        var name: String
+        var age: Int
+    }
 }

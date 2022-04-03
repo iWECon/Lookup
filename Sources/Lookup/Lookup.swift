@@ -1,8 +1,4 @@
-#if os(macOS)
-import AppKit
-#else
-import UIKit
-#endif
+import Foundation
 
 // MARK: - extension Array Helper merging multi lookup into one lookup
 public extension Array where Element == Lookup {
@@ -32,6 +28,9 @@ fileprivate extension String {
 // MARK: Unwrap
 fileprivate func unwrap(_ object: Any) -> Any {
     switch object {
+    case let lookup as Lookup:
+        return unwrap(lookup.object)
+        
     case let number as NSNumber:
         return number
     case let str as String:
@@ -56,17 +55,9 @@ fileprivate func unwrap(_ object: Any) -> Any {
     }
 }
 
-// fix print(lookup) error: `display Found unexpected null pointer value while trying to cast value of type 'NSNumber'`
-extension NSNumber: Swift.CustomReflectable {
-    public var customMirror: Mirror {
-        let mirror = Mirror(reflecting: self)
-        return mirror
-    }
-}
-
 // MARK: - Lookup
 @dynamicMemberLookup
-public struct Lookup: CustomStringConvertible {
+public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
     
     public enum RawType {
         case none
@@ -84,7 +75,7 @@ public struct Lookup: CustomStringConvertible {
     fileprivate private(set) var rawDict: [String: Any] = [:]
     fileprivate private(set) var rawArray: [Any] = []
     fileprivate private(set) var rawString: String = ""
-    fileprivate private(set) var rawNumber: NSNumber = .init()
+    fileprivate private(set) var rawNumber: NSNumber = 0
     
     private init(jsonObject: Any) {
         self.object = jsonObject
@@ -226,13 +217,23 @@ public struct Lookup: CustomStringConvertible {
         }
     }
     
+    private func castValueToString(value: Any) -> String {
+        if JSONSerialization.isValidJSONObject(value),
+           let data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
+           let str = String(data: data, encoding: .utf8)
+        {
+            return str
+        }
+        return "Can not cast value to string"
+    }
+    
     public var description: String {
         let desc: String
         switch rawType {
         case .dict, .object:
-            desc = rawDict.description
+            desc = castValueToString(value: rawDict)
         case .array:
-            desc = rawArray.description
+            desc = castValueToString(value: rawArray)
         case .number:
             desc = "\(rawNumber)"
         case .string:
@@ -240,13 +241,10 @@ public struct Lookup: CustomStringConvertible {
         case .none:
             desc = "nil"
         }
-        return """
-{
-  rawType: \(rawType),
-  description: \(desc)
-}
-"""
+        return desc
     }
+    
+    public var debugDescription: String { description }
     
     fileprivate static var null: Lookup { Lookup(NSNull()) }
 }
@@ -435,5 +433,122 @@ public extension Lookup {
     }
     var arrayValue: [Any] {
         array!
+    }
+}
+
+// MARK: - Codable
+extension Lookup: Codable {
+    
+    private var codableDictionary: [String: Lookup]? {
+        if rawType == .dict {
+            var d = [String: Lookup](minimumCapacity: rawDict.count)
+            rawDict.forEach { pair in
+                d[pair.key] = Lookup(pair.value)
+            }
+            return d
+        }
+        return nil
+    }
+    
+    private var codableArray: [Lookup]? {
+        rawType == .array ? rawArray.map { Lookup($0) } : nil
+    }
+    
+    private static var codableTypes: [Codable.Type] {
+        [
+            Bool.self,
+            Int.self, Int8.self, Int16.self, Int32.self, Int64.self,
+            UInt.self, UInt8.self, UInt16.self, UInt32.self, UInt64.self,
+            Double.self,
+            String.self,
+            [Lookup].self,
+            [String: Lookup].self
+        ]
+    }
+    public init(from decoder: Decoder) throws {
+        var object: Any?
+
+        if let container = try? decoder.singleValueContainer(), !container.decodeNil() {
+            for type in Lookup.codableTypes {
+                if object != nil {
+                    break
+                }
+                // try to decode value
+                switch type {
+                case let boolType as Bool.Type:
+                    object = try? container.decode(boolType)
+                case let intType as Int.Type:
+                    object = try? container.decode(intType)
+                case let int8Type as Int8.Type:
+                    object = try? container.decode(int8Type)
+                case let int32Type as Int32.Type:
+                    object = try? container.decode(int32Type)
+                case let int64Type as Int64.Type:
+                    object = try? container.decode(int64Type)
+                case let uintType as UInt.Type:
+                    object = try? container.decode(uintType)
+                case let uint8Type as UInt8.Type:
+                    object = try? container.decode(uint8Type)
+                case let uint16Type as UInt16.Type:
+                    object = try? container.decode(uint16Type)
+                case let uint32Type as UInt32.Type:
+                    object = try? container.decode(uint32Type)
+                case let uint64Type as UInt64.Type:
+                    object = try? container.decode(uint64Type)
+                case let doubleType as Double.Type:
+                    object = try? container.decode(doubleType)
+                case let stringType as String.Type:
+                    object = try? container.decode(stringType)
+                case let jsonValueArrayType as [Lookup].Type:
+                    object = try? container.decode(jsonValueArrayType)
+                case let jsonValueDictType as [String: Lookup].Type:
+                    object = try? container.decode(jsonValueDictType)
+                default:
+                    break
+                }
+            }
+        }
+        self.init(object ?? NSNull())
+    }
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        if object is NSNull {
+            try container.encodeNil()
+            return
+        }
+        switch object {
+        case let intValue as Int:
+            try container.encode(intValue)
+        case let int8Value as Int8:
+            try container.encode(int8Value)
+        case let int32Value as Int32:
+            try container.encode(int32Value)
+        case let int64Value as Int64:
+            try container.encode(int64Value)
+        case let uintValue as UInt:
+            try container.encode(uintValue)
+        case let uint8Value as UInt8:
+            try container.encode(uint8Value)
+        case let uint16Value as UInt16:
+            try container.encode(uint16Value)
+        case let uint32Value as UInt32:
+            try container.encode(uint32Value)
+        case let uint64Value as UInt64:
+            try container.encode(uint64Value)
+        case let doubleValue as Double:
+            try container.encode(doubleValue)
+        case let boolValue as Bool:
+            try container.encode(boolValue)
+        case let stringValue as String:
+            try container.encode(stringValue)
+        case is [Any]:
+            let jsonValueArray = codableArray ?? []
+            try container.encode(jsonValueArray)
+        case is [String: Any]:
+            let jsonValueDictValue = codableDictionary ?? [:]
+            try container.encode(jsonValueDictValue)
+        default:
+            break
+        }
     }
 }
