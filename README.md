@@ -73,17 +73,15 @@ guard lookup.message.isSome,
 可直接使用 struct 或 class 实例进行初始化
 
 ```swift
-final struct Person {
+struct Person {
     var name: String
     var age: Int
 }
 
-let person = Person()
-person.name = "lookup"
-person.age = 1
+let person = Person(name: "lookup", age: 1)
 
 let lookup = Lookup(person)
-lookup.name.string  // -> lookup
+lookup.name.string  // -> "lookup"
 lookup.age.int  // -> 1
 ```
 
