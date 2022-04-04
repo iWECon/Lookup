@@ -7,7 +7,9 @@ let package = Package(
     name: "Lookup",
     platforms: [
         .iOS(.v9),
-        .macOS(.v11)
+        .tvOS(.v9),
+        .watchOS(.v6),
+        .macOS(.v10_10)
     ],
     products: [
         .library(name: "Lookup", targets: ["Lookup"]),

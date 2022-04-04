@@ -10,7 +10,20 @@
 
 基本包含 SwiftyJSON 的所有功能 ~
 
-## 功能
+## Platforms
+
+* .iOS(.v9)
+
+* .tvOS(.v9)
+
+* .watchOS(.v6)
+
+* .macOS(.v10_10)
+
+* .Vapor(4.0)
+
+
+## Features
 
 * （🔥🔥🔥）支持链式取值
 ```swift
@@ -40,9 +53,25 @@ lookup.result.list.0.age.int // -> 1
 lookup.result.list.0.age.double // -> 1.0
 ```
 
+* 处理错误
+
+这里特指取值失败的情况
+
+```swift
+// lookup.message.isSome  // 取到了 “message” 的值
+// lookup.message.isNone  // 取到的值为 nil，或者没有找到这个 “message” 字段
+
+guard lookup.message.isSome,
+    let message = lookup.message.string else {
+    return
+}
+// do something use message
+```
+
 * 支持 Struct 和 Class
 
 可直接使用 struct 或 class 实例进行初始化
+
 ```swift
 final struct Person {
     var name: String
@@ -81,9 +110,14 @@ try await req.client.post(uri, headers: headers) { inoutReq in
 更多用法参考 `LookupTests.swift`: [LookupTests.swift](https://github.com/iWECon/Lookup/blob/main/Tests/LookupTests/LookupTests.swift)
 
 
-## 安装方式
+## Installation
 
-#### Swift Package Manager
+### Cocoapods
+
+`pod 'Lookup', :git => "https://github.com/iWECon/Lookup", :tag => "2.2.1"`
+
+
+### Swift Package Manager
 ```swift
 // for swift-tools-version: 5.3
 // swift 5.0 +
