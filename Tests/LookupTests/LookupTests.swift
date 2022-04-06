@@ -64,6 +64,34 @@ final class LookupTests: QuickSpec {
                 }
             }
             
+            context("test initialization") {
+                it("jsonString to initialize") {
+                    let jsonString = "{\"name\": \"lookup\"}"
+                    let lookup = Lookup(jsonString)
+                    expect(lookup.name.string) == "lookup"
+                }
+                
+                it("json data to initialize") {
+                    let jsonString = "{\"name\": \"lookup\"}"
+                    let data = jsonString.data(using: .utf8)
+                    expect(data == nil) == false
+                    
+                    let lookup = Lookup(data!)
+                    expect(lookup.name.string) == "lookup"
+                }
+                
+                it("array to initialize") {
+                    let array: [Any] = [1, 2.0, "3", 4.5, -5, -6.0]
+                    let lookup = Lookup(array)
+                    expect(lookup.0.int) == 1
+                    expect(lookup.1.double) == 2.0
+                    expect(lookup.2.string) == "3"
+                    expect(lookup.3.double) == 4.5
+                    expect(lookup.4.int) == -5
+                    expect(lookup.5.double) == -6.0
+                }
+            }
+            
             // MARK: ⚠️ NOT SUPPORT NUMBER KEY NOW
             context("test dictionary with number key") {
                 it("test") {
@@ -77,91 +105,6 @@ final class LookupTests: QuickSpec {
             }
         }
     }
-    
-<<<<<<< Updated upstream
-    class Animal: SuperAnimal {
-        var eat: Eat = .init()
-    }
-
-    class Eat {
-        var name = "Meat"
-    }
-
-    func testClass() {
-        let a = Animal()
-        let lookup = Lookup(a)
-        print(lookup)
-
-        XCTAssertTrue(lookup.name.string == "Tiger")
-        XCTAssertTrue(lookup["eat.name"].string == "Meat")
-        XCTAssertTrue(lookup.age.intValue == 4)
-    }
-
-    func testMerging() {
-        let a: [String: Any?] = ["name": "kevin", "age": 14]
-        let b: [String: Any?] = ["name": "kevins", "city": "hangzhou"]
-
-        let merged = [Lookup(a), Lookup(b)].merging(uniquingKeysWith: { $1 })
-        print(merged)
-        XCTAssertTrue(merged.dict!.keys.sorted(by: { $0 < $1 }) == ["age", "city", "name"])
-    }
-    
-    static var allTests = [
-        ("testExample", testExample),
-        ("testStruct", testStruct),
-        ("testClass", testClass),
-        ("testLookups", testLookups)
-    ]
-    
-    func testLookups() throws {
-        let dict = [
-            "user": "kevin",
-            "age": 24,
-            "brief": "life is better~~",
-            "favorite": nil,
-            "friends": [
-                [
-                    "name": "big wang",
-                    "age": 26
-                ], [
-                    "name": "tiger",
-                    "age": 22
-                ]
-            ],
-            "jsonstring": "[{\"a\": 1, \"b\": 2, \"c\": 3}, {\"d\": 4, \"e\": 5, \"f\": 6}]"
-        ] as [String : Any?]
-        
-        let lookup = Lookup(dict)
-        print(lookup)
-        
-        print(lookup["friends"][1].age)
-        
-        XCTAssertTrue(lookup["friends"][0]["name"].string == "big wang")
-        XCTAssertTrue(lookup["friends"][0]["brief"].string == nil)
-
-        XCTAssertTrue(lookup["friends"][1].name.string == "tiger")
-        XCTAssertTrue(lookup["friends"][1].age.string == "22")
-        XCTAssertTrue(lookup["friends"][1].age.intValue == 22)
-        XCTAssertTrue(lookup.friends.1.age.intValue == 22)
-        
-        XCTAssertTrue(lookup.friends.1.age.rawValue as? Int == 22)
-        XCTAssertTrue(lookup.friends.1.age.rawValue as? String == nil)
-        XCTAssertTrue(lookup.friends.1.age.string == "22")
-        XCTAssertTrue(lookup.age.floatValue == 24.0)
-        XCTAssertTrue(lookup.age.doubleValue == 24.0)
-        XCTAssertTrue(lookup.age.stringValue == "24")
-        
-        XCTAssertTrue(lookup["favorite"].isNone)
-        XCTAssertTrue(lookup.favorite.isNone)
-
-        XCTAssertTrue(!lookup.favorite.isSome)
-        XCTAssertTrue(lookup.jsonstring.arrayValue.count == 2)
-        XCTAssertTrue(lookup.jsonstring.0.a.intValue == 1)
-        XCTAssertTrue(lookup.jsonstring.1.e.string == "5")
-        XCTAssertTrue(lookup.jsonstring.10.a.isNone)
-    }
-=======
->>>>>>> Stashed changes
 }
 
 //final class LookupTests: XCTestCase {

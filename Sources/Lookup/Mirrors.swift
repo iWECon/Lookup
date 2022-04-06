@@ -2,11 +2,7 @@
 //  Created by iWw on 2021/1/13.
 //
 
-#if os(macOS)
-import AppKit
-#else
-import UIKit
-#endif
+import Foundation
 
 func canMirrorInto(_ reflecting: Any?) -> Bool {
     guard let ref = reflecting else { return false }

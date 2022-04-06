@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
     s.name = 'Lookup'
-    s.version = '1.0.5'
+    s.version = '2.2.1'
     s.authors = 'iWw'
     s.homepage = 'https://www.iwecon.cc'
     s.summary = 'Lookup for JSON handler.'
