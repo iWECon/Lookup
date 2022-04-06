@@ -1,234 +1,236 @@
-import XCTest
+import Quick
+import Nimble
 @testable import Lookup
+import Foundation
 
-final class LookupTests: XCTestCase {
+enum AnimalType {
+    case dog, cat
+}
+
+enum AnimalIntType: Int, LookupEnum {
+    case dog = 0, cat
     
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-
-        let dict = [
-            "code": 200,
-            "success": 1,
-            "result": [
-                "pageNumber": 1,
-                "hasMore": false,
-                "messages": nil,
-                "point": 3.1415926
-            ],
-            "values": [
-                ["name": "你好"],
-                ["name": "世界"]
-            ]
-        ] as [String : Any?]
-
-        let lookup = Lookup(dict)
-        print(lookup)
-
-        XCTAssertTrue(lookup["values.0.name"].string == "你好")
-        XCTAssertTrue(lookup["values.1.name"].string == "世界")
-        XCTAssertTrue(lookup["values.10.name"].string == nil)
-
-        XCTAssertTrue(lookup.values.0.name.isNone == false)
-
-        XCTAssertTrue(lookup.code.intValue == 200)
-        XCTAssertTrue(lookup.success.boolValue == true)
-
-        XCTAssertTrue(lookup["result.pageNumber"].int == 1)
-        XCTAssertTrue(lookup["result.hasMore"].boolValue == false)
-
-        XCTAssertTrue(lookup["result.messages"].isNone)
-        XCTAssertTrue(lookup.callback.isNone)
-        XCTAssertTrue(lookup["result.point"].doubleValue == 3.1415926)
+    var lookupRawValue: Any {
+        self.rawValue
     }
+}
 
-    struct User {
-        var name = "Bro"
-        var age = 24
-        var car: Car = .init(name: "Tesla")
-    }
+struct Animal {
+    let name: String
+    let age: Int
+    let type: AnimalType
+    let intType: AnimalIntType
+}
 
-    struct Car {
-        var name = "Tesla"
-    }
+open class AnimalClass {
+    let name: String = "Dog"
+    let age: Int = 4
+    let type: AnimalType = .dog
+    let intType: AnimalIntType = .dog
+}
 
-    func testStruct() {
+final class Species: AnimalClass {
+    let start: Date = Date()
+}
 
-        let u = User.init()
-
-        let lookup = Lookup(u)
-        print(lookup)
-
-        XCTAssertTrue(lookup["car.name"].string == "Tesla")
-        XCTAssertTrue(lookup.name.string == "Bro")
-        XCTAssertTrue(lookup.age.intValue == 24)
-    }
+final class LookupTests: QuickSpec {
     
-    class SuperAnimal {
-        var name = "Tiger"
-        var age = 4
-    }
-    
-    class Animal: SuperAnimal {
-        var eat: Eat = .init()
-    }
-
-    class Eat {
-        var name = "Meat"
-    }
-
-    func testClass() {
-        let a = Animal()
-        let lookup = Lookup(a)
-        print(lookup)
-
-        XCTAssertTrue(lookup.name.string == "Tiger")
-        XCTAssertTrue(lookup["eat.name"].string == "Meat")
-        XCTAssertTrue(lookup.age.intValue == 4)
-    }
-
-    func testMerging() {
-        let a: [String: Any?] = ["name": "kevin", "age": 14]
-        let b: [String: Any?] = ["name": "kevins", "city": "hangzhou"]
-
-        let merged = [Lookup(a), Lookup(b)].merging(uniquingKeysWith: { $1 })
-        print(merged)
-        XCTAssertTrue(merged.dict!.keys.sorted(by: { $0 < $1 }) == ["age", "city", "name"])
-    }
-    
-    static var allTests = [
-        ("testExample", testExample),
-        ("testStruct", testStruct),
-        ("testClass", testClass),
-        ("testLookups", testLookups)
-    ]
-    
-    func testLookups() throws {
-        let dict = [
-            "user": "kevin",
-            "age": 24,
-            "brief": "life is better~~",
-            "favorite": nil,
-            "friends": [
-                [
-                    "name": "big wang",
-                    "age": 26
-                ], [
-                    "name": "tiger",
-                    "age": 22
+    override func spec() {
+        describe("Lookup tests") {
+            
+            context("test initialization") {
+                it("jsonString initialization") {
+                    let jsonString = "{\"name\": \"lookup\"}"
+                    let lookup = Lookup(jsonString)
+                    expect(lookup.name.string) == "lookup"
+                }
+                
+                it("json data initialization") {
+                    let jsonString = "{\"name\": \"lookup\"}"
+                    let data = jsonString.data(using: .utf8)
+                    expect(data == nil) == false
+                    
+                    let lookup = Lookup(data!)
+                    expect(lookup.name.string) == "lookup"
+                }
+                
+                it("array initialization") {
+                    let array: [Any] = [1, 2.0, "3", 4.5, -5, -6.0]
+                    let lookup = Lookup(array)
+                    expect(lookup.0.int) == 1
+                    expect(lookup.1.double) == 2.0
+                    expect(lookup.2.string) == "3"
+                    expect(lookup.3.double) == 4.5
+                    expect(lookup.4.int) == -5
+                    expect(lookup.5.double) == -6.0
+                }
+                
+                it("structure initialization") {
+                    let animal = Animal(name: "Cat", age: 3, type: .cat, intType: .cat)
+                    let lookup = Lookup(animal)
+                    expect(lookup.name.string) == "Cat"
+                    expect(lookup.age.int) == 3
+                    expect(lookup.type.string) == "cat"
+                    expect(lookup.intType.int) == 1
+                }
+                
+                it("class initialization") {
+                    let animal = AnimalClass()
+                    let lookup = Lookup(animal)
+                    expect(lookup.name.string) == "Dog"
+                    expect(lookup.age.int) == 4
+                    expect(lookup.type.string) == "dog"
+                    expect(lookup.intType.int) == 0
+                }
+                
+                it("has super class's initialization") {
+                    let species = Species()
+                    let lookup = Lookup(species)
+                    expect(lookup.name.string) == "Dog"
+                    expect(lookup.age.int) == 4
+                    expect(lookup.type.string) == "dog"
+                    expect(lookup.intType.int) == 0
+                    expect(lookup.start.double).toNot(beNil())
+                }
+            }
+            
+            context("test chain value") {
+                it("more dict") {
+                    let dict: [String: Any] = [
+                        "data": [
+                            "list": ["value0", nil, "value2"]
+                        ]
+                    ]
+                    
+                    let lookup = Lookup(dict)
+                    expect(lookup.data.list.0.string) == "value0"
+                    expect(lookup.data.list.1.isNone) == true
+                    expect(lookup.data.list.2.string) == "value2"
+                }
+                
+                let dict: [String: Any] = [
+                    "data": [
+                        ["list": ["value0", nil, "value2"]],
+                        ["list": ["value3", nil, 4]]
+                    ]
                 ]
-            ],
-            "jsonstring": "[{\"a\": 1, \"b\": 2, \"c\": 3}, {\"d\": 4, \"e\": 5, \"f\": 6}]"
-        ] as [String : Any?]
-        
-        let lookup = Lookup(dict)
-        print(lookup)
-        
-        print(lookup["friends"][1].age)
-        
-        XCTAssertTrue(lookup["friends"][0]["name"].string == "big wang")
-        XCTAssertTrue(lookup["friends"][0]["brief"].string == nil)
-
-        XCTAssertTrue(lookup["friends"][1].name.string == "tiger")
-        XCTAssertTrue(lookup["friends"][1].age.string == "22")
-        XCTAssertTrue(lookup["friends"][1].age.intValue == 22)
-        XCTAssertTrue(lookup.friends.1.age.intValue == 22)
-        
-        XCTAssertTrue(lookup.friends.1.age.rawValue as? Int == 22)
-        XCTAssertTrue(lookup.friends.1.age.rawValue as? String == nil)
-        XCTAssertTrue(lookup.friends.1.age.string == "22")
-        XCTAssertTrue(lookup.age.floatValue == 24.0)
-        XCTAssertTrue(lookup.age.doubleValue == 24.0)
-        XCTAssertTrue(lookup.age.stringValue == "24")
-        
-        XCTAssertTrue(lookup["favorite"].isNone)
-        XCTAssertTrue(lookup.favorite.isNone)
-
-        XCTAssertTrue(!lookup.favorite.isSome)
-        XCTAssertTrue(lookup.jsonstring.arrayValue.count == 2)
-        XCTAssertTrue(lookup.jsonstring.0.a.intValue == 1)
-        XCTAssertTrue(lookup.jsonstring.1.e.string == "5")
-        XCTAssertTrue(lookup.jsonstring.10.a.isNone)
-    }
-    
-    func testCodable() throws {
-        
-        let dict = [
-            "code": 200,
-            "success": 1,
-            "result": [
-                "pageNumber": 1,
-                "hasMore": false,
-                "messages": nil,
-                "point": 3.1415926
-            ],
-            "values": [
-                ["name": "你好"],
-                ["name": "世界"]
-            ]
-        ] as [String : Any?]
-        
-        let data = try JSONSerialization.data(withJSONObject: dict)
-        let lookup = try JSONDecoder().decode(Lookup.self, from: data)
-        XCTAssertTrue(lookup.code.int == 200)
-        XCTAssertTrue(lookup.success.int == 1)
-        XCTAssertTrue(lookup.success.string == "1")
-        XCTAssertTrue(lookup.result.pageNumber.int == 1)
-        XCTAssertTrue(lookup.values.0.name.string == "你好")
-        XCTAssertTrue(lookup.values.1.name.string == "世界")
-    }
-    
-    func testEncodable() throws {
-        let dict = [
-            "code": 200,
-            "success": 1,
-            "result": [
-                "pageNumber": 1,
-                "hasMore": false,
-                "messages": nil,
-                "point": 3.1415926
-            ],
-            "values": [
-                ["name": "你好"],
-                ["name": "世界"]
-            ]
-        ] as [String : Any]
-        
-        let data = try JSONSerialization.data(withJSONObject: dict)
-        let lookup = try JSONDecoder().decode(Lookup.self, from: data)
-        
-        let encodeData = try JSONEncoder().encode(lookup)
-        let encoderDict = try! JSONSerialization.jsonObject(with: encodeData, options: []) as! [String: Any]
-        XCTAssertTrue(encoderDict["code"] as! NSNumber == 200)
-        
-        let r = encoderDict["values"] as? [[String: String]]
-        let r1 = r?[0]
-        let r1Name = r1?["name"]
-        XCTAssertTrue(r1Name == "你好")
-        
-        let rr = encoderDict["result"] as? [String: Any]
-        let messages = rr?["messages"]
-        print(lookup)
-        XCTAssertTrue(messages is NSNull)
-        
-        let arr = [
-            1, 2, 3, "4", 5, "6"
-        ] as [Any]
-        print(Lookup(arr))
-        
-        
-        let dictt: [String: Any] = [
-            "name": "iww",
-            "age": 26
-        ]
-        let dataa = try JSONSerialization.data(withJSONObject: dictt)
-        let t = try JSONDecoder().decode(Test.self, from: dataa)
-        XCTAssertTrue(t.name == "iww")
-    }
-    
-    struct Test: Codable {
-        var name: String
-        var age: Int
+                let lookup = Lookup(dict)
+                it("more array") {
+                    expect(lookup.data.0.list.0.string) == "value0"
+                    expect(lookup.data.0.list.1.string).to(beNil())
+                    expect(lookup.data.0.list.2.string) == "value2"
+                    
+                    expect(lookup.data.1.list.0.string) == "value3"
+                    expect(lookup.data.1.list.1.string).to(beNil())
+                    expect(lookup.data.1.list.2.int) == 4
+                }
+                
+                it("index with chain") {
+                    expect(lookup["data.0.list.0"].string) == "value0"
+                    expect(lookup["data.1.list.1"].string).to(beNil())
+                    expect(lookup["data.1.list.2"].int) == 4
+                }
+            }
+            
+            context("test nil") {
+                it("array contains nil") {
+                    let array: [Any?] = [1, 2, "3", nil, 5]
+                    let lookup = Lookup(array)
+                    expect(lookup.3.isNone).to(beTrue())
+                }
+                
+                it("dictionary contains nil") {
+                    let dict: [String: Any?] = [
+                        "nil": nil
+                    ]
+                    let lookup = Lookup(dict)
+                    expect(lookup.nil.isNone).to(beTrue())
+                }
+            }
+            
+            context("test number conver") {
+                it("number") {
+                    let dict = ["number": 1]
+                    let lookup = Lookup(dict)
+                    expect(lookup.number.int) == 1
+                    expect(lookup.number.string) == "1"
+                    expect(lookup.number.int16) == 1
+                    expect(lookup.number.int32) == 1
+                    expect(lookup.number.int64) == 1
+                    expect(lookup.number.uInt) == 1
+                    expect(lookup.number.uInt16) == 1
+                    expect(lookup.number.uInt32) == 1
+                    expect(lookup.number.uInt64) == 1
+                    expect(lookup.number.float) == 1.0
+                    expect(lookup.number.double) == 1.0
+                    expect(lookup.number.bool) == true
+                }
+                
+                it("string number") {
+                    let dict = ["number": "1"]
+                    let lookup = Lookup(dict)
+                    expect(lookup.number.int) == 1
+                    expect(lookup.number.string) == "1"
+                    expect(lookup.number.int16) == 1
+                    expect(lookup.number.int32) == 1
+                    expect(lookup.number.int64) == 1
+                    expect(lookup.number.uInt) == 1
+                    expect(lookup.number.uInt16) == 1
+                    expect(lookup.number.uInt32) == 1
+                    expect(lookup.number.uInt64) == 1
+                    expect(lookup.number.float) == 1.0
+                    expect(lookup.number.double) == 1.0
+                    expect(lookup.number.bool) == true
+                }
+            }
+            
+            context("test merge lookup") {
+                it("merge dictionary lookups") {
+                    let lookup1 = Lookup(["name": "Lookup", "age": 3])
+                    let lookup2 = Lookup(["age": 1])
+                    let merged = [lookup1, lookup2].merging(uniquingKeysWith: { $1 })
+                    expect(merged.name.string) == "Lookup"
+                    expect(merged.age.int) == 1
+                }
+                
+                // MARK: NOT SUPOORT NOW
+                xit("merge array lookups") {
+                    //let lookup1 = Lookup([1, 2, 3])
+                    //let lookup2 = Lookup([4, 5, 6])
+                    //let merged = [lookup1, lookup2].merging(uniquingKeysWith: { $1 })
+                }
+            }
+            
+            context("test codable") {
+                it("encode") {
+                    let jsonString = "{\"name\": \"Lookup\", \"age\": 1, \"list\": \"[1,2,3]\"}"
+                    let lookup = try JSONDecoder().decode(Lookup.self, from: jsonString.data(using: .utf8)!)
+                    expect(lookup.name.string) == "Lookup"
+                    expect(lookup.age.int) == 1
+                    expect(lookup.list.0.int) == 1
+                    expect(lookup.list.1.int) == 2
+                    expect(lookup.list.2.int) == 3
+                    
+                    let jsonData = try JSONEncoder().encode(lookup)
+                    let _jsonString = String(data: jsonData, encoding: .utf8)
+                    expect(_jsonString).toNot(beNil())
+                    let rLookup = Lookup(_jsonString!)
+                    expect(rLookup.name.string) == "Lookup"
+                    expect(rLookup.age.int) == 1
+                }
+            }
+            
+            // MARK: ⚠️ NOT SUPPORT NUMBER KEY NOW
+            context("test dictionary with number key") {
+                it("test") {
+                    let dict: [Int: Any] = [
+                        0: "Lookup"
+                    ]
+                    let lookup = Lookup(dict)
+                    //expect(lookup.0.string).to(equal("Lookup"))
+                    expect(lookup.0.string).to(beNil())
+                }
+            }
+        }
     }
 }

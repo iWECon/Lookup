@@ -3,7 +3,9 @@ import Foundation
 // MARK: - extension Array Helper merging multi lookup into one lookup
 public extension Array where Element == Lookup {
     
-    /// Merging multi rawDict into one
+    /// Merging multi `rawDict` into one
+    /// ⚠️ Only support `Dictionary`
+    ///
     /// - Parameter uniquingKeysWith: uniquing keys with conflict
     /// - Returns: Merged `Lookup`
     func merging(uniquingKeysWith: (Any, Any) -> Any) -> Lookup {
@@ -30,7 +32,6 @@ fileprivate func unwrap(_ object: Any) -> Any {
     switch object {
     case let lookup as Lookup:
         return unwrap(lookup.object)
-        
     case let number as NSNumber:
         return number
     case let str as String:
@@ -121,7 +122,8 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     
     private init(jsonString: String) throws {
         guard let stringData = jsonString.data(using: .utf8) else {
-            fatalError("It's not a json string: \(jsonString)")
+            self.init(jsonObject: NSNull())
+            return
         }
         try self.init(data: stringData)
     }
@@ -130,14 +132,10 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     public init(_ object: Any) {
         switch object {
         case let str as String:
-            if JSONSerialization.isValidJSONObject(object)  {
-                do {
-                    try self.init(jsonString: str)
-                } catch {
-                    self.init(jsonObject: NSNull())
-                }
-            } else {
-                self.init(jsonObject: object)
+            do {
+                try self.init(jsonString: str)
+            } catch {
+                self.init(jsonObject: str)
             }
         case let data as Data:
             do {
@@ -149,7 +147,6 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             self.init(jsonObject: object)
         }
     }
-    
     
     public subscript (dynamicMember dynamicMember: String) -> Lookup {
         if dynamicMember.contains(".") {
@@ -218,8 +215,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     }
     
     private func castValueToString(value: Any) -> String {
-        if JSONSerialization.isValidJSONObject(value),
-           let data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
+        if let data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
            let str = String(data: data, encoding: .utf8)
         {
             return str
