@@ -11,6 +11,17 @@ func canMirrorInto(_ reflecting: Any?) -> Bool {
     return displayStyle == .class || displayStyle == .struct
 }
 
+func mirrorValue(_ value: Any) -> Any {
+    let mirror = Mirror(reflecting: value)
+    guard mirror.displayStyle == .enum else {
+        return value
+    }
+    if let lookupEnum = value as? LookupEnum {
+        return lookupEnum.lookupRawValue
+    }
+    return "\(value)"
+}
+
 public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = nil) -> [String: Any] {
     guard let reflecting = reflecting else { return [:] }
     
@@ -19,7 +30,7 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     let mirror = Mirror(reflecting: reflecting)
     for child in mirror.children {
         if let label = child.label, !label.isEmpty {
-            map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : child.value
+            map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : mirrorValue(child.value)
         }
         each?(child.label, child.value)
     }
@@ -28,7 +39,7 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     while superMirror != nil {
         for child in superMirror!.children {
             if let label = child.label, !label.isEmpty {
-                map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : child.value
+                map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : mirrorValue(child.value)
             }
             each?(child.label, child.value)
         }
