@@ -5,19 +5,22 @@
 import Foundation
 
 func canMirrorInto(_ reflecting: Any?) -> Bool {
+    if let _ = reflecting as? LookupRawValue {
+        return false
+    }
     guard let ref = reflecting else { return false }
     let mirror = Mirror(reflecting: ref)
     guard let displayStyle = mirror.displayStyle else { return false }
-    return displayStyle == .class || displayStyle == .struct
+    return (displayStyle == .class || displayStyle == .struct)
 }
 
 func mirrorValue(_ value: Any) -> Any {
+    if let lookupRawValue = value as? LookupRawValue {
+        return lookupRawValue.lookupRawValue
+    }
     let mirror = Mirror(reflecting: value)
     guard mirror.displayStyle == .enum else {
         return value
-    }
-    if let lookupEnum = value as? LookupEnum {
-        return lookupEnum.lookupRawValue
     }
     return "\(value)"
 }

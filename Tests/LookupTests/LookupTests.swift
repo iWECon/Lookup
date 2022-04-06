@@ -1,6 +1,7 @@
 import Quick
 import Nimble
 @testable import Lookup
+import Foundation
 
 enum AnimalType {
     case dog, cat
@@ -21,11 +22,15 @@ struct Animal {
     let intType: AnimalIntType
 }
 
-final class AnimalClass {
+open class AnimalClass {
     let name: String = "Dog"
     let age: Int = 4
     let type: AnimalType = .dog
     let intType: AnimalIntType = .dog
+}
+
+final class Species: AnimalClass {
+    let start: Date = Date()
 }
 
 final class LookupTests: QuickSpec {
@@ -76,6 +81,16 @@ final class LookupTests: QuickSpec {
                     expect(lookup.age.int) == 4
                     expect(lookup.type.string) == "dog"
                     expect(lookup.intType.int) == 0
+                }
+                
+                it("has super class's initialization") {
+                    let species = Species()
+                    let lookup = Lookup(species)
+                    expect(lookup.name.string) == "Dog"
+                    expect(lookup.age.int) == 4
+                    expect(lookup.type.string) == "dog"
+                    expect(lookup.intType.int) == 0
+                    expect(lookup.start.double).toNot(beNil())
                 }
             }
             
@@ -166,6 +181,42 @@ final class LookupTests: QuickSpec {
                     expect(lookup.number.float) == 1.0
                     expect(lookup.number.double) == 1.0
                     expect(lookup.number.bool) == true
+                }
+            }
+            
+            context("test merge lookup") {
+                it("merge dictionary lookups") {
+                    let lookup1 = Lookup(["name": "Lookup", "age": 3])
+                    let lookup2 = Lookup(["age": 1])
+                    let merged = [lookup1, lookup2].merging(uniquingKeysWith: { $1 })
+                    expect(merged.name.string) == "Lookup"
+                    expect(merged.age.int) == 1
+                }
+                
+                // MARK: NOT SUPOORT NOW
+                xit("merge array lookups") {
+                    //let lookup1 = Lookup([1, 2, 3])
+                    //let lookup2 = Lookup([4, 5, 6])
+                    //let merged = [lookup1, lookup2].merging(uniquingKeysWith: { $1 })
+                }
+            }
+            
+            context("test codable") {
+                it("encode") {
+                    let jsonString = "{\"name\": \"Lookup\", \"age\": 1, \"list\": \"[1,2,3]\"}"
+                    let lookup = try JSONDecoder().decode(Lookup.self, from: jsonString.data(using: .utf8)!)
+                    expect(lookup.name.string) == "Lookup"
+                    expect(lookup.age.int) == 1
+                    expect(lookup.list.0.int) == 1
+                    expect(lookup.list.1.int) == 2
+                    expect(lookup.list.2.int) == 3
+                    
+                    let jsonData = try JSONEncoder().encode(lookup)
+                    let _jsonString = String(data: jsonData, encoding: .utf8)
+                    expect(_jsonString).toNot(beNil())
+                    let rLookup = Lookup(_jsonString!)
+                    expect(rLookup.name.string) == "Lookup"
+                    expect(rLookup.age.int) == 1
                 }
             }
             

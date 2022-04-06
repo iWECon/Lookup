@@ -3,7 +3,9 @@ import Foundation
 // MARK: - extension Array Helper merging multi lookup into one lookup
 public extension Array where Element == Lookup {
     
-    /// Merging multi rawDict into one
+    /// Merging multi `rawDict` into one
+    /// ⚠️ Only support `Dictionary`
+    ///
     /// - Parameter uniquingKeysWith: uniquing keys with conflict
     /// - Returns: Merged `Lookup`
     func merging(uniquingKeysWith: (Any, Any) -> Any) -> Lookup {
@@ -30,7 +32,6 @@ fileprivate func unwrap(_ object: Any) -> Any {
     switch object {
     case let lookup as Lookup:
         return unwrap(lookup.object)
-        
     case let number as NSNumber:
         return number
     case let str as String:
@@ -146,7 +147,6 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             self.init(jsonObject: object)
         }
     }
-    
     
     public subscript (dynamicMember dynamicMember: String) -> Lookup {
         if dynamicMember.contains(".") {
