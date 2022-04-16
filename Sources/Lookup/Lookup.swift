@@ -477,6 +477,8 @@ extension Lookup: Codable {
                     object = try? container.decode(intType)
                 case let int8Type as Int8.Type:
                     object = try? container.decode(int8Type)
+                case let int16Type as Int16.Type:
+                    object = try? container.decode(int16Type)
                 case let int32Type as Int32.Type:
                     object = try? container.decode(int32Type)
                 case let int64Type as Int64.Type:
@@ -517,6 +519,8 @@ extension Lookup: Codable {
             try container.encode(intValue)
         case let int8Value as Int8:
             try container.encode(int8Value)
+        case let int16Value as Int16:
+            try container.encode(int16Value)
         case let int32Value as Int32:
             try container.encode(int32Value)
         case let int64Value as Int64:
