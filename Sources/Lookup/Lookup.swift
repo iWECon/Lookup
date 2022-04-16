@@ -471,36 +471,36 @@ extension Lookup: Codable {
                 }
                 // try to decode value
                 switch type {
-                case let boolType as Bool.Type:
-                    object = try? container.decode(boolType)
-                case let intType as Int.Type:
-                    object = try? container.decode(intType)
-                case let int8Type as Int8.Type:
-                    object = try? container.decode(int8Type)
-                case let int16Type as Int16.Type:
-                    object = try? container.decode(int16Type)
-                case let int32Type as Int32.Type:
-                    object = try? container.decode(int32Type)
-                case let int64Type as Int64.Type:
-                    object = try? container.decode(int64Type)
-                case let uintType as UInt.Type:
-                    object = try? container.decode(uintType)
-                case let uint8Type as UInt8.Type:
-                    object = try? container.decode(uint8Type)
-                case let uint16Type as UInt16.Type:
-                    object = try? container.decode(uint16Type)
-                case let uint32Type as UInt32.Type:
-                    object = try? container.decode(uint32Type)
-                case let uint64Type as UInt64.Type:
-                    object = try? container.decode(uint64Type)
-                case let doubleType as Double.Type:
-                    object = try? container.decode(doubleType)
                 case let stringType as String.Type:
                     object = try? container.decode(stringType)
                 case let jsonValueArrayType as [Lookup].Type:
                     object = try? container.decode(jsonValueArrayType)
                 case let jsonValueDictType as [String: Lookup].Type:
                     object = try? container.decode(jsonValueDictType)
+                case let boolType as Bool.Type:
+                    object = try? container.decode(boolType)
+                case let doubleType as Double.Type:
+                    object = try? container.decode(doubleType)
+                case let uintType as UInt.Type:
+                    object = try? container.decode(uintType)
+                case let uint64Type as UInt64.Type:
+                    object = try? container.decode(uint64Type)
+                case let uint32Type as UInt32.Type:
+                    object = try? container.decode(uint32Type)
+                case let uint16Type as UInt16.Type:
+                    object = try? container.decode(uint16Type)
+                case let uint8Type as UInt8.Type:
+                    object = try? container.decode(uint8Type)
+                case let intType as Int.Type:
+                    object = try? container.decode(intType)
+                case let int64Type as Int64.Type:
+                    object = try? container.decode(int64Type)
+                case let int32Type as Int32.Type:
+                    object = try? container.decode(int32Type)
+                case let int16Type as Int16.Type:
+                    object = try? container.decode(int16Type)
+                case let int8Type as Int8.Type:
+                    object = try? container.decode(int8Type)
                 default:
                     break
                 }
