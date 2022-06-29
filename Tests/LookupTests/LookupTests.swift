@@ -204,12 +204,23 @@ final class LookupTests: QuickSpec {
             context("test codable") {
                 it("encode") {
                     let jsonString = "{\"name\": \"Lookup\", \"age\": 1, \"list\": \"[1,2,3]\"}"
-                    let lookup = try JSONDecoder().decode(Lookup.self, from: jsonString.data(using: .utf8)!)
+                    var lookup = try JSONDecoder().decode(Lookup.self, from: jsonString.data(using: .utf8)!)
                     expect(lookup.name.string) == "Lookup"
                     expect(lookup.age.int) == 1
                     expect(lookup.list.0.int) == 1
                     expect(lookup.list.1.int) == 2
                     expect(lookup.list.2.int) == 3
+                    expect(lookup.list.arrayLookup.0.intValue) == 1
+                    
+                    lookup["list"] = ["a", "b", "c"]
+                    expect(lookup.list.0.string) == "a"
+                    expect(lookup.list.1.string) == "b"
+                    expect(lookup.list.2.string) == "c"
+                    expect(lookup.list.3.string).to(beNil())
+                    
+                    // TODO: dynamicMember change
+                    lookup["list.0"] = "d"
+                    expect(lookup.list.0.string) != "d"
                     
                     let jsonData = try JSONEncoder().encode(lookup)
                     let _jsonString = String(data: jsonData, encoding: .utf8)
@@ -217,6 +228,9 @@ final class LookupTests: QuickSpec {
                     let rLookup = Lookup(_jsonString!)
                     expect(rLookup.name.string) == "Lookup"
                     expect(rLookup.age.int) == 1
+                    
+                    lookup["age"] = "8"
+                    expect(lookup.age.int) == 8
                 }
             }
             
