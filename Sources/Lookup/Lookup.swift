@@ -18,6 +18,12 @@ public extension Array where Element == Lookup {
     }
 }
 
+extension Array {
+    var countIndex: Int {
+        count - 1
+    }
+}
+
 // MARK: - Helper for String
 fileprivate extension String {
     var isPurnInt: Bool {
@@ -148,7 +154,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    public subscript (dynamicMember dynamicMember: String) -> Lookup {
+    private func makeLookup(from dynamicMember: String) -> Lookup {
         if dynamicMember.contains(".") {
             var keys = dynamicMember.components(separatedBy: ".")
             
@@ -183,7 +189,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             return Lookup(rawDict[dynamicMember, default: NSNull()])
         case .array, .string:
             if dynamicMember.isPurnInt,
-                let index = Int(dynamicMember)
+               let index = Int(dynamicMember)
             {
                 return self[index]
             }
@@ -193,8 +199,45 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
+    // TODO: dynamicMember change
+    private mutating func setNewValue(for dynamicMember: String, value: Lookup) {
+        switch rawType {
+        case .none:
+            break
+        case .dict:
+            rawDict[dynamicMember] = value.rawValue
+        case .array:
+            switch value.rawType {
+            case .array:
+                rawArray = value.rawArray
+            default:
+                break
+            }
+        case .object:
+            break
+        case .number:
+            break
+        case .string:
+            break
+        }
+    }
+    
+    public subscript (dynamicMember dynamicMember: String) -> Lookup {
+        get {
+            makeLookup(from: dynamicMember)
+        }
+        set {
+            setNewValue(for: dynamicMember, value: newValue)
+        }
+    }
+    
     public subscript (_ dynamicMember: String) -> Lookup {
-        self[dynamicMember: dynamicMember]
+        get {
+            self[dynamicMember: dynamicMember]
+        }
+        set {
+            self[dynamicMember: dynamicMember] = newValue
+        }
     }
     
     public subscript (_ memberIndex: Int) -> Lookup {
@@ -205,7 +248,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             }
             return .null
         case .array:
-            if memberIndex > rawArray.count {
+            if memberIndex > rawArray.countIndex {
                 return .null
             }
             return Lookup(rawArray[memberIndex])
@@ -243,6 +286,26 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     public var debugDescription: String { description }
     
     fileprivate static var null: Lookup { Lookup(NSNull()) }
+}
+
+extension Lookup: ExpressibleByArrayLiteral {
+    public typealias ArrayLiteralElement = Any
+    
+    public init(arrayLiteral elements: ArrayLiteralElement...) {
+        self.init(jsonObject: elements)
+    }
+}
+
+extension Lookup: ExpressibleByStringLiteral {
+    public init(stringLiteral value: StringLiteralType) {
+        self.init(jsonObject: value)
+    }
+}
+
+extension Lookup: ExpressibleByBooleanLiteral {
+    public init(booleanLiteral value: BooleanLiteralType) {
+        self.init(jsonObject: value)
+    }
 }
 
 // MARK: - Convert
@@ -398,7 +461,7 @@ public extension Lookup {
             return rawDict
         case .string:
             if let originString = object as? String,
-                let stringData = originString.data(using: .utf8)
+               let stringData = originString.data(using: .utf8)
             {
                     return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
             }
@@ -409,6 +472,23 @@ public extension Lookup {
     }
     var dictValue: [String: Any] {
         dict!
+    }
+    
+    var dictLookup: Lookup {
+        switch rawType {
+        case .dict:
+            return Lookup(rawDict)
+        case .string:
+            if let originString = object as? String,
+               let stringData = originString.data(using: .utf8),
+               let _dict = try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
+            {
+                return Lookup(_dict)
+            }
+            return .null
+        default:
+            return .null
+        }
     }
     
     // MARK: - Array
@@ -429,6 +509,23 @@ public extension Lookup {
     }
     var arrayValue: [Any] {
         array!
+    }
+    
+    var arrayLookup: Lookup {
+        switch rawType {
+        case .array:
+            return Lookup(rawArray)
+        case .string:
+            if let originString = object as? String,
+               let stringData = originString.data(using: .utf8),
+               let _array = try? JSONSerialization.jsonObject(with: stringData, options: []) as? [Any]
+            {
+                return Lookup(_array)
+            }
+            return .null
+        default:
+            return .null
+        }
     }
 }
 
@@ -471,34 +568,36 @@ extension Lookup: Codable {
                 }
                 // try to decode value
                 switch type {
-                case let boolType as Bool.Type:
-                    object = try? container.decode(boolType)
-                case let intType as Int.Type:
-                    object = try? container.decode(intType)
-                case let int8Type as Int8.Type:
-                    object = try? container.decode(int8Type)
-                case let int32Type as Int32.Type:
-                    object = try? container.decode(int32Type)
-                case let int64Type as Int64.Type:
-                    object = try? container.decode(int64Type)
-                case let uintType as UInt.Type:
-                    object = try? container.decode(uintType)
-                case let uint8Type as UInt8.Type:
-                    object = try? container.decode(uint8Type)
-                case let uint16Type as UInt16.Type:
-                    object = try? container.decode(uint16Type)
-                case let uint32Type as UInt32.Type:
-                    object = try? container.decode(uint32Type)
-                case let uint64Type as UInt64.Type:
-                    object = try? container.decode(uint64Type)
-                case let doubleType as Double.Type:
-                    object = try? container.decode(doubleType)
                 case let stringType as String.Type:
                     object = try? container.decode(stringType)
                 case let jsonValueArrayType as [Lookup].Type:
                     object = try? container.decode(jsonValueArrayType)
                 case let jsonValueDictType as [String: Lookup].Type:
                     object = try? container.decode(jsonValueDictType)
+                case let boolType as Bool.Type:
+                    object = try? container.decode(boolType)
+                case let doubleType as Double.Type:
+                    object = try? container.decode(doubleType)
+                case let uintType as UInt.Type:
+                    object = try? container.decode(uintType)
+                case let uint64Type as UInt64.Type:
+                    object = try? container.decode(uint64Type)
+                case let uint32Type as UInt32.Type:
+                    object = try? container.decode(uint32Type)
+                case let uint16Type as UInt16.Type:
+                    object = try? container.decode(uint16Type)
+                case let uint8Type as UInt8.Type:
+                    object = try? container.decode(uint8Type)
+                case let intType as Int.Type:
+                    object = try? container.decode(intType)
+                case let int64Type as Int64.Type:
+                    object = try? container.decode(int64Type)
+                case let int32Type as Int32.Type:
+                    object = try? container.decode(int32Type)
+                case let int16Type as Int16.Type:
+                    object = try? container.decode(int16Type)
+                case let int8Type as Int8.Type:
+                    object = try? container.decode(int8Type)
                 default:
                     break
                 }
@@ -517,6 +616,8 @@ extension Lookup: Codable {
             try container.encode(intValue)
         case let int8Value as Int8:
             try container.encode(int8Value)
+        case let int16Value as Int16:
+            try container.encode(int16Value)
         case let int32Value as Int32:
             try container.encode(int32Value)
         case let int64Value as Int64:
