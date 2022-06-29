@@ -188,9 +188,16 @@ final class LookupTests: QuickSpec {
                 it("merge dictionary lookups") {
                     let lookup1 = Lookup(["name": "Lookup", "age": 3])
                     let lookup2 = Lookup(["age": 1])
-                    let merged = [lookup1, lookup2].merging(uniquingKeysWith: { $1 })
+                    let merged = lookup1 + lookup2
                     expect(merged.name.string) == "Lookup"
                     expect(merged.age.int) == 1
+                    
+                    var lookup3 = Lookup(["name": "Lookup", "brief": "A data handle tools."])
+                    let lookup4 = Lookup(["age": 1])
+                    lookup3 += lookup4
+                    expect(lookup3.age.int) == 1
+                    expect(lookup3.name.string) == "Lookup"
+                    expect(lookup3.brief.string) == "A data handle tools."
                 }
                 
                 // MARK: NOT SUPOORT NOW

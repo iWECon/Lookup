@@ -1,23 +1,5 @@
 import Foundation
 
-// MARK: - extension Array Helper merging multi lookup into one lookup
-public extension Array where Element == Lookup {
-    
-    /// Merging multi `rawDict` into one
-    /// ⚠️ Only support `Dictionary`
-    ///
-    /// - Parameter uniquingKeysWith: uniquing keys with conflict
-    /// - Returns: Merged `Lookup`
-    func merging(uniquingKeysWith: (Any, Any) -> Any) -> Lookup {
-        let dictLookups = self.compactMap({ $0.dict })
-        var temp: [String: Any] = [:]
-        for value in dictLookups {
-            temp.merge(value, uniquingKeysWith: uniquingKeysWith)
-        }
-        return Lookup(temp)
-    }
-}
-
 extension Array {
     var countIndex: Int {
         count - 1
@@ -34,7 +16,7 @@ fileprivate extension String {
 }
 
 // MARK: Unwrap
-fileprivate func unwrap(_ object: Any) -> Any {
+fileprivate func unwrap(_ object: Any?) -> Any {
     switch object {
     case let lookup as Lookup:
         return unwrap(lookup.object)
@@ -58,7 +40,7 @@ fileprivate func unwrap(_ object: Any) -> Any {
         return array.map(unwrap)
         
     default:
-        return object
+        return object ?? NSNull()
     }
 }
 
@@ -286,6 +268,17 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     public var debugDescription: String { description }
     
     fileprivate static var null: Lookup { Lookup(NSNull()) }
+    
+    fileprivate mutating func merge(other: Lookup) {
+        switch (self.rawType, other.rawType) {
+        case (.dict, .dict):
+            self.rawDict.merge(other.rawDict, uniquingKeysWith: { $1 })
+        case (.array, .array):
+            self.rawArray += other.rawArray
+        default:
+            break
+        }
+    }
 }
 
 extension Lookup: ExpressibleByArrayLiteral {
@@ -527,6 +520,24 @@ public extension Lookup {
             return .null
         }
     }
+}
+
+
+// MARK: - Operator
+public func + (lhs: Lookup, rhs: Lookup) -> Lookup {
+    switch (lhs.rawType, rhs.rawType) {
+    case (.dict, .dict):
+        let lhsRawDict = lhs.rawDict
+        return Lookup(lhsRawDict.merging(rhs.rawDict, uniquingKeysWith: { $1 }))
+    case (.array, .array):
+        return Lookup(lhs.rawArray + rhs.rawArray)
+    default:
+        return .null
+    }
+}
+
+public func += (lhs: inout Lookup, rhs: Lookup) {
+    lhs.merge(other: rhs)
 }
 
 // MARK: - Codable
