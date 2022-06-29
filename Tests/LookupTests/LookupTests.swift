@@ -218,6 +218,9 @@ final class LookupTests: QuickSpec {
                     expect(lookup.list.2.string) == "c"
                     expect(lookup.list.3.string).to(beNil())
                     
+                    lookup["address"] = "in Hangzhou"
+                    expect(lookup.address.string) == "in Hangzhou"
+                    
                     // TODO: dynamicMember change
                     lookup["list.0"] = "d"
                     expect(lookup.list.0.string) != "d"
