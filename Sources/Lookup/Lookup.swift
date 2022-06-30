@@ -289,6 +289,14 @@ extension Lookup: ExpressibleByArrayLiteral {
     }
 }
 
+extension Lookup: ExpressibleByDictionaryLiteral {
+    public typealias Key = String
+    public typealias Value = Any
+    public init(dictionaryLiteral elements: (Key, Value)...) {
+        self.init(jsonObject: Dictionary(uniqueKeysWithValues: elements))
+    }
+}
+
 extension Lookup: ExpressibleByStringLiteral {
     public init(stringLiteral value: StringLiteralType) {
         self.init(jsonObject: value)

@@ -198,6 +198,13 @@ final class LookupTests: QuickSpec {
                     expect(lookup3.age.int) == 1
                     expect(lookup3.name.string) == "Lookup"
                     expect(lookup3.brief.string) == "A data handle tools."
+                    
+                    let lookup5 = lookup3 + ["brief": "json handle tools"]
+                    expect(lookup5.brief.string) == "json handle tools"
+                    
+                    let lookup6 = Lookup([1, 2, 3, 4, 5])
+                    let lookup7 = lookup6 + [4, 5, 6, 7, 8]
+                    expect(lookup7.arrayValue.count) == 10
                 }
                 
                 // MARK: NOT SUPOORT NOW
