@@ -39,6 +39,13 @@ final class LookupTests: QuickSpec {
         describe("Lookup tests") {
             
             context("test initialization") {
+                it("data string initialization") {
+                    let str = "Its a string..."
+                    let data = str.data(using: .utf8)!
+                    let lookup = Lookup(data)
+                    expect(lookup.string) == str
+                }
+                
                 it("jsonString initialization") {
                     let jsonString = "{\"name\": \"lookup\"}"
                     let lookup = Lookup(jsonString)

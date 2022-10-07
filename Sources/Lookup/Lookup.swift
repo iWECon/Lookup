@@ -103,34 +103,35 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    private init(data: Data, options opt: JSONSerialization.ReadingOptions = []) throws {
-        let object: Any = try JSONSerialization.jsonObject(with: data, options: opt)
-        self.init(jsonObject: object)
+    private init(data: Data, options opt: JSONSerialization.ReadingOptions = []) {
+        do {
+            let object: Any = try JSONSerialization.jsonObject(with: data, options: opt)
+            self.init(jsonObject: object)
+        } catch let error as NSError {
+            // Code=3840 "JSON text did not start with array or object and option to allow fragments not set. around line 1, column 0."
+            if error.code == 3840, let str = String(data: data, encoding: .utf8) { // try to initialize using a string
+                self.init(jsonObject: str)
+            } else {
+                self.init(jsonObject: NSNull())
+            }
+        }
     }
     
-    private init(jsonString: String) throws {
+    private init(jsonString: String) {
         guard let stringData = jsonString.data(using: .utf8) else {
             self.init(jsonObject: NSNull())
             return
         }
-        try self.init(data: stringData)
+        self.init(data: stringData)
     }
     
-    /// Support JSON-Data, String of JSON, Array, Dictionary, Struct object and Class object
+    /// Support `JSON-Data`, `String-Data`, `String of JSON`, `Array`, `Dictionary`, `Struct object` and `Class object`
     public init(_ object: Any) {
         switch object {
         case let str as String:
-            do {
-                try self.init(jsonString: str)
-            } catch {
-                self.init(jsonObject: str)
-            }
+            self.init(jsonString: str)
         case let data as Data:
-            do {
-                try self.init(data: data)
-            } catch {
-                self.init(jsonObject: NSNull())
-            }
+            self.init(data: data)
         default:
             self.init(jsonObject: object)
         }
