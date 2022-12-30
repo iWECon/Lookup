@@ -513,21 +513,25 @@ public extension Lookup {
         array!
     }
     
-    var arrayLookup: Lookup {
+    var arrayLookup: [Lookup] {
         switch rawType {
         case .array:
-            return Lookup(rawArray)
+            return rawArray.map { Lookup($0) }
         case .string:
             if let originString = object as? String,
                let stringData = originString.data(using: .utf8),
                let _array = try? JSONSerialization.jsonObject(with: stringData, options: []) as? [Any]
             {
-                return Lookup(_array)
+                return _array.map { Lookup($0) }
             }
-            return .null
+            return []
         default:
-            return .null
+            return []
         }
+    }
+    
+    var lookup: Lookup {
+        Lookup(rawValue)
     }
 }
 
