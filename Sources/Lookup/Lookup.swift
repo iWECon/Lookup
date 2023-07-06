@@ -240,13 +240,34 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    private func castValueToString(value: Any) -> String {
-        if let data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
+    private func jsonToPrettyString(value: Any) -> String? {
+        if JSONSerialization.isValidJSONObject(value),
+           let data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
            let str = String(data: data, encoding: .utf8)
         {
             return str
         }
-        return "Can not cast value to string"
+        return nil
+    }
+    
+    private func castValueToString(value: Any) -> String {
+        if let str = jsonToPrettyString(value: value) {
+            return str
+        }
+        // map to string
+        switch value {
+        case let dict as Dictionary<String, Any>:
+            let strDict = Dictionary(uniqueKeysWithValues: dict.map { (key: String, value: Any) in
+                (key, "\(value)")
+            })
+            return jsonToPrettyString(value: strDict) ?? "\(strDict)"
+            
+        case let arr as [Any]:
+            return jsonToPrettyString(value: arr) ?? "\(arr)"
+            
+        default:
+            return "\(value)"
+        }
     }
     
     public var description: String {
