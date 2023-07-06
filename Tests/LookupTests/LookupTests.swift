@@ -1,6 +1,9 @@
 import XCTest
 @testable import Lookup
 import Foundation
+#if os(iOS)
+import UIKit
+#endif
 
 enum AnimalType {
     case dog, cat
@@ -244,7 +247,19 @@ final class LookupTests: XCTestCase {
             lookup["age"] = "8"
             XCTAssertEqual(lookup.age.int, 8)
         }
-        
         try codable()
+        
+        #if os(iOS)
+        func uiView() throws {
+            let view = UIView()
+            let lookup = Lookup(["view": view])
+            XCTAssertEqual(lookup.description, """
+{
+  "view" : "\(view)"
+}
+""")
+        }
+        try uiView()
+        #endif
     }
 }
