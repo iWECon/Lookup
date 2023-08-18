@@ -137,6 +137,12 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
+    // Resolve build warning:
+    // heterogeneous collection literal could only be inferred to '[String : Any]'; add explicit type annotation if this is intentional
+    public init(_ anyDictionary: [String: Any]) {
+        self.init(anyDictionary as Any)
+    }
+    
     private func makeLookup(from dynamicMember: String) -> Lookup {
         if dynamicMember.contains(".") {
             var keys = dynamicMember.components(separatedBy: ".")
