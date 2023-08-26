@@ -211,6 +211,12 @@ final class LookupTests: XCTestCase {
             let lookup6 = Lookup([1, 2, 3, 4, 5])
             let lookup7 = lookup6 + [4, 5, 6, 7, 8]
             XCTAssertEqual(lookup7.arrayValue.count, 10)
+            
+            let lookup8 = Lookup([
+                "userID": 00001,
+                "nickname": "Lookup"
+            ])
+            XCTAssertEqual(lookup8.userID.string, "1")
         }
         mergeDictionaryLookups()
         
@@ -248,6 +254,23 @@ final class LookupTests: XCTestCase {
             XCTAssertEqual(lookup.age.int, 8)
         }
         try codable()
+        
+        func setValue() throws {
+            let jsonString = "{\"name\": \"lookup\"}"
+            let data = jsonString.data(using: .utf8)
+            XCTAssertFalse(data == nil)
+            
+            var lookup = Lookup(data!)
+            lookup.name = "Lookup YYDS"
+            XCTAssertEqual(lookup.name.string, "Lookup YYDS")
+            
+            lookup.name = 1.0
+            XCTAssertEqual(lookup.name.double, 1.0)
+            
+            lookup.name = nil
+            XCTAssertEqual(lookup.name.isNone, true)
+        }
+        try setValue()
         
         #if os(iOS)
         func uiView() throws {
