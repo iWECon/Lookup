@@ -255,6 +255,23 @@ final class LookupTests: XCTestCase {
         }
         try codable()
         
+        func setValue() throws {
+            let jsonString = "{\"name\": \"lookup\"}"
+            let data = jsonString.data(using: .utf8)
+            XCTAssertFalse(data == nil)
+            
+            var lookup = Lookup(data!)
+            lookup.name = "Lookup YYDS"
+            XCTAssertEqual(lookup.name.string, "Lookup YYDS")
+            
+            lookup.name = 1.0
+            XCTAssertEqual(lookup.name.double, 1.0)
+            
+            lookup.name = nil
+            XCTAssertEqual(lookup.name.isNone, true)
+        }
+        try setValue()
+        
         #if os(iOS)
         func uiView() throws {
             let view = UIView()

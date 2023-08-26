@@ -19,7 +19,7 @@ fileprivate extension String {
 fileprivate func unwrap(_ object: Any?) -> Any {
     switch object {
     case let lookup as Lookup:
-        return unwrap(lookup.object)
+        return unwrap(lookup.rawValue)
     case let number as NSNumber:
         return number
     case let str as String:
@@ -57,8 +57,24 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         case string
     }
     
-    fileprivate private(set) var object: Any
-    public var rawValue: Any { object }
+    public var rawValue: Any {
+        get {
+            switch rawType {
+            case .none:
+                return NSNull()
+            case .dict:
+                return rawDict
+            case .array:
+                return rawArray
+            case .object:
+                return rawDict
+            case .number:
+                return rawNumber
+            case .string:
+                return rawString
+            }
+        }
+    }
     
     fileprivate let rawType: RawType
     fileprivate private(set) var rawDict: [String: Any] = [:]
@@ -67,8 +83,6 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     fileprivate private(set) var rawNumber: NSNumber = 0
     
     private init(jsonObject: Any) {
-        self.object = jsonObject
-        
         switch jsonObject {
         case Optional<Any>.none:
             self.rawType = .none
@@ -76,7 +90,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             self.rawType = .none
             
         default:
-            switch unwrap(object) {
+            switch unwrap(jsonObject) {
             case let number as NSNumber:
                 self.rawNumber = number
                 self.rawType = .number
@@ -96,7 +110,6 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             case _ as AnyObject:
                 self.rawDict = mirrors(reflecting: jsonObject)
                 self.rawType = .object
-                
             default:
                 self.rawType = .none
             }
@@ -152,17 +165,17 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
                 case .none:
                     return .null
                 case .dict, .object:
-                    let value = rawDict[key, default: NSNull()]
+                    let value: Any = rawDict[key, default: NSNull()]
                     let innerLookup = Lookup(value)
                     keys.removeFirst()
                     
-                    let newKey = keys.joined(separator: ".")
+                    let newKey: String = keys.joined(separator: ".")
                     return innerLookup[dynamicMember: newKey]
                 case .array, .string:
                     if key.isPurnInt, let index = Int(key) {
                         keys.removeFirst()
                         
-                        let newKey = keys.joined(separator: ".")
+                        let newKey: String = keys.joined(separator: ".")
                         return self[index][dynamicMember: newKey]
                     }
                     return .null
@@ -193,21 +206,14 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         switch rawType {
         case .none:
             break
-        case .dict:
+        case .dict, .object:
             rawDict[dynamicMember] = value.rawValue
         case .array:
-            switch value.rawType {
-            case .array:
-                rawArray = value.rawArray
-            default:
-                break
-            }
-        case .object:
-            break
+            rawArray = value.rawArray
         case .number:
-            break
+            rawNumber = value.rawNumber
         case .string:
-            break
+            rawString = value.rawString
         }
     }
     
@@ -246,34 +252,13 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    private func jsonToPrettyString(value: Any) -> String? {
-        if JSONSerialization.isValidJSONObject(value),
-           let data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
+    private func castValueToString(value: Any) -> String {
+        if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
            let str = String(data: data, encoding: .utf8)
         {
             return str
         }
-        return nil
-    }
-    
-    private func castValueToString(value: Any) -> String {
-        if let str = jsonToPrettyString(value: value) {
-            return str
-        }
-        // map to string
-        switch value {
-        case let dict as Dictionary<String, Any>:
-            let strDict = Dictionary(uniqueKeysWithValues: dict.map { (key: String, value: Any) in
-                (key, "\(value)")
-            })
-            return jsonToPrettyString(value: strDict) ?? "\(strDict)"
-            
-        case let arr as [Any]:
-            return jsonToPrettyString(value: arr) ?? "\(arr)"
-            
-        default:
-            return "\(value)"
-        }
+        return "Can not cast value to string"
     }
     
     public var description: String {
@@ -286,7 +271,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         case .number:
             desc = "\(rawNumber)"
         case .string:
-            desc = "\(object)"
+            desc = "\(rawValue)"
         case .none:
             desc = "nil"
         }
@@ -328,6 +313,24 @@ extension Lookup: ExpressibleByDictionaryLiteral {
 extension Lookup: ExpressibleByStringLiteral {
     public init(stringLiteral value: StringLiteralType) {
         self.init(jsonObject: value)
+    }
+}
+
+extension Lookup: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: IntegerLiteralType) {
+        self.init(jsonObject: value)
+    }
+}
+
+extension Lookup: ExpressibleByFloatLiteral {
+    public init(floatLiteral value: FloatLiteralType) {
+        self.init(jsonObject: value)
+    }
+}
+
+extension Lookup: ExpressibleByNilLiteral {
+    public init(nilLiteral: ()) {
+        self.init(jsonObject: NSNull())
     }
 }
 
@@ -489,7 +492,7 @@ public extension Lookup {
         case .dict:
             return rawDict
         case .string:
-            if let originString = object as? String,
+            if let originString = rawValue as? String,
                let stringData = originString.data(using: .utf8)
             {
                     return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
@@ -508,7 +511,7 @@ public extension Lookup {
         case .dict:
             return Lookup(rawDict)
         case .string:
-            if let originString = object as? String,
+            if let originString = rawValue as? String,
                let stringData = originString.data(using: .utf8),
                let _dict = try? JSONSerialization.jsonObject(with: stringData, options: []) as? [String: Any]
             {
@@ -526,7 +529,7 @@ public extension Lookup {
         case .array:
             return rawArray
         case .string:
-            if let originString = object as? String,
+            if let originString = rawValue as? String,
                let stringData = originString.data(using: .utf8)
             {
                 return try? JSONSerialization.jsonObject(with: stringData, options: []) as? [Any]
@@ -545,7 +548,7 @@ public extension Lookup {
         case .array:
             return rawArray.map { Lookup($0) }
         case .string:
-            if let originString = object as? String,
+            if let originString = rawValue as? String,
                let stringData = originString.data(using: .utf8),
                let _array = try? JSONSerialization.jsonObject(with: stringData, options: []) as? [Any]
             {
@@ -658,11 +661,11 @@ extension Lookup: Codable {
     }
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        if object is NSNull {
+        if rawValue is NSNull {
             try container.encodeNil()
             return
         }
-        switch object {
+        switch rawValue {
         case let intValue as Int:
             try container.encode(intValue)
         case let int8Value as Int8:
