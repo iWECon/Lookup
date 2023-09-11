@@ -574,6 +574,21 @@ public extension Lookup {
     }
 }
 
+// MARK: Decode
+extension Lookup {
+    
+    public enum DecodeError: Swift.Error {
+        case invalidJSONData
+    }
+    
+    public func decode<D>(as decodable: D.Type, using decoder: JSONDecoder = JSONDecoder()) throws -> D where D: Decodable {
+        guard let jsonData else {
+            throw DecodeError.invalidJSONData
+        }
+        return try decoder.decode(D.self, from: jsonData)
+    }
+}
+
 
 // MARK: - Operator
 public func + (lhs: Lookup, rhs: Lookup) -> Lookup {
