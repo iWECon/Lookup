@@ -560,6 +560,18 @@ public extension Lookup {
     var lookup: Lookup {
         Lookup(rawValue)
     }
+    
+    /// Available on `array` and `dict`
+    var jsonData: Data? {
+        switch rawType {
+        case .array:
+            return try? JSONSerialization.data(withJSONObject: rawArray)
+        case .dict:
+            return try? JSONSerialization.data(withJSONObject: rawDict)
+        default:
+            return nil
+        }
+    }
 }
 
 
