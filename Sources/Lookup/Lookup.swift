@@ -150,7 +150,7 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    // Resolve build warning:
+    // # Resolve build warning:
     // heterogeneous collection literal could only be inferred to '[String : Any]'; add explicit type annotation if this is intentional
     public init(_ anyDictionary: [String: Any]) {
         self.init(anyDictionary as Any)
@@ -201,7 +201,6 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    // TODO: dynamicMember change
     private mutating func setNewValue(for dynamicMember: String, value: Lookup) {
         switch rawType {
         case .none:
@@ -343,6 +342,7 @@ extension Lookup: ExpressibleByBooleanLiteral {
 // MARK: - Convert
 public extension Lookup {
     
+    /// return true when it is invalid `key` or `value`
     var isNone: Bool {
         rawType == .none
     }
@@ -352,6 +352,7 @@ public extension Lookup {
     }
     
     // MARK: - String
+    /// Convert value to `String`, available when rawType is in `[.number, .string]`
     var string: String? {
         switch rawType {
         case .number:
@@ -487,6 +488,7 @@ public extension Lookup {
     }
     
     // MARK: - Dict
+    /// Available when rawType is in `[.dict, .string]` (if use string, it **MUST** be jsonString)
     var dict: [String: Any]? {
         switch rawType {
         case .dict:
@@ -506,6 +508,7 @@ public extension Lookup {
         dict!
     }
     
+    /// Available when rawType is in `[.dict, .string]` (if use string, it **MUST** be jsonString)
     var dictLookup: Lookup {
         switch rawType {
         case .dict:
@@ -524,6 +527,7 @@ public extension Lookup {
     }
     
     // MARK: - Array
+    /// Available when rawType is in `[.array, .string]` (if use string, it **MUST** be jsonString)
     var array: [Any]? {
         switch rawType {
         case .array:
@@ -543,6 +547,7 @@ public extension Lookup {
         array!
     }
     
+    /// Available when rawType is in `[.array, .string]` (if use string, it **MUST** be jsonString)
     var arrayLookup: [Lookup] {
         switch rawType {
         case .array:
@@ -562,6 +567,61 @@ public extension Lookup {
     
     var lookup: Lookup {
         Lookup(rawValue)
+    }
+    
+    /// Available when rawType is in `[.array, .dict]`
+    var jsonData: Data? {
+        switch rawType {
+        case .array:
+            return try? JSONSerialization.data(withJSONObject: rawArray)
+        case .dict:
+            return try? JSONSerialization.data(withJSONObject: rawDict)
+        default:
+            return nil
+        }
+    }
+    
+    /// Available when rawType is in `[.array, .dict, .string]`
+    var isEmpty: Bool {
+        switch rawType {
+        case .array:
+            return rawArray.isEmpty
+        case .dict:
+            return rawDict.isEmpty
+        case .string:
+            return rawString.isEmpty
+        default:
+            return false
+        }
+    }
+    
+    /// Available when rawType is in `[.array, .dict, .string]`
+    var count: Int {
+        switch rawType {
+        case .array:
+            return rawArray.count
+        case .dict:
+            return rawDict.count
+        case .string:
+            return rawString.count
+        default:
+            return 0
+        }
+    }
+}
+
+// MARK: Decode
+extension Lookup {
+    
+    public enum DecodeError: Swift.Error {
+        case invalidJSONData
+    }
+    
+    public func decode<D>(as decodable: D.Type, using decoder: JSONDecoder = JSONDecoder()) throws -> D where D: Decodable {
+        guard let jsonData else {
+            throw DecodeError.invalidJSONData
+        }
+        return try decoder.decode(D.self, from: jsonData)
     }
 }
 
