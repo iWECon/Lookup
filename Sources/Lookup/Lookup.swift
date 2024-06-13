@@ -46,7 +46,7 @@ fileprivate func unwrap(_ object: Any?) -> Any {
 
 // MARK: - Lookup
 @dynamicMemberLookup
-public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
+public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible, @unchecked Sendable {
     
     public enum RawType {
         case none
@@ -283,10 +283,30 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
     
     fileprivate mutating func merge(other: Lookup) {
         switch (self.rawType, other.rawType) {
-        case (.dict, .dict):
-            self.rawDict.merge(other.rawDict, uniquingKeysWith: { $1 })
-        case (.array, .array):
-            self.rawArray += other.rawArray
+        case (.dict, _):
+            switch other.rawType {
+            case .dict:
+                self.rawDict.merge(other.rawDict, uniquingKeysWith: { $1 })
+            default:
+                self.rawDict.merge(other.dict ?? [:], uniquingKeysWith: { $1 })
+            }
+            
+        case (.array, _):
+            switch other.rawType {
+            case .array:
+                self.rawArray += other.rawArray
+            default:
+                self.rawArray += (other.array ?? [])
+            }
+            
+        case (.string, _):
+            switch other.rawType {
+            case .string:
+                self.rawString += other.rawString
+            default:
+                self.rawString += other.string ?? ""
+            }
+            
         default:
             break
         }
@@ -303,7 +323,7 @@ extension Lookup: ExpressibleByArrayLiteral {
 
 extension Lookup: ExpressibleByDictionaryLiteral {
     public typealias Key = String
-    public typealias Value = Any
+    public typealias Value = Any?
     public init(dictionaryLiteral elements: (Key, Value)...) {
         self.init(jsonObject: Dictionary(uniqueKeysWithValues: elements))
     }
@@ -312,6 +332,12 @@ extension Lookup: ExpressibleByDictionaryLiteral {
 extension Lookup: ExpressibleByStringLiteral {
     public init(stringLiteral value: StringLiteralType) {
         self.init(jsonObject: value)
+    }
+}
+
+extension Lookup: ExpressibleByStringInterpolation {
+    public init(stringInterpolation: DefaultStringInterpolation) {
+        self.init(jsonObject: stringInterpolation.description)
     }
 }
 
@@ -349,6 +375,41 @@ public extension Lookup {
     
     var isSome: Bool {
         !isNone
+    }
+    
+    /// Whether to include Key, case sensitive
+    func hasKey(_ keyName: String) -> Bool {
+        if keyName.contains(".") {
+            var keys = keyName.components(separatedBy: ".")
+            let finalKey = keys.removeLast()
+            
+            if let key = keys.first {
+                switch rawType {
+                case .none:
+                    return false
+                case .dict, .object:
+                    let value: Any = rawDict[key, default: NSNull()]
+                    let innerLookup = Lookup(value)
+                    keys.removeFirst()
+                    
+                    let newKey: String = keys.joined(separator: ".")
+                    return innerLookup[dynamicMember: newKey].hasKey(finalKey)
+                case .array, .string:
+                    if key.isPurnInt, let index = Int(key) {
+                        keys.removeFirst()
+                        
+                        let newKey: String = keys.joined(separator: ".")
+                        return self[index][dynamicMember: newKey].hasKey(finalKey)
+                    }
+                    return false
+                default:
+                    return false
+                }
+            }
+            return false
+        }
+        
+        return rawDict.keys.contains(keyName)
     }
     
     // MARK: - String
@@ -569,13 +630,15 @@ public extension Lookup {
         Lookup(rawValue)
     }
     
-    /// Available when rawType is in `[.array, .dict]`
+    /// Available when rawType is in `[.array, .dict, .string]`
     var jsonData: Data? {
         switch rawType {
         case .array:
             return try? JSONSerialization.data(withJSONObject: rawArray)
         case .dict:
             return try? JSONSerialization.data(withJSONObject: rawDict)
+        case .string:
+            return rawString.data(using: .utf8)
         default:
             return nil
         }

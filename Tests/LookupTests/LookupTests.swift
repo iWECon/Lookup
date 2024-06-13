@@ -272,6 +272,59 @@ final class LookupTests: XCTestCase {
         }
         try setValue()
         
+        func changeValue() throws {
+            let jsonString = """
+{
+    "name": "Lookap",
+    "version": "2.3.1",
+    "age": 2.5
+}
+"""
+            var lookup = Lookup(jsonString)
+            lookup.name = "Lookup"
+            
+            let newVersion = "2.4.0"
+            lookup.version = "\(newVersion)"
+            lookup.age = 3
+            
+            let newProperty = Lookup(["birthday": "2023/2/3", "info": 1])
+            lookup += newProperty
+            
+            lookup += ["describe": "a magic json handle package", "info": 2, "url": nil]
+            XCTAssertEqual(lookup.name.string, "Lookup")
+            XCTAssertEqual(lookup.version.string, "2.4.0")
+            XCTAssertEqual(lookup.age.double, 3)
+            XCTAssertEqual(lookup.birthday.string, "2023/2/3")
+            XCTAssertEqual(lookup.describe.string, "a magic json handle package")
+            XCTAssertEqual(lookup.abc.string, nil)
+            XCTAssertEqual(lookup.info.int, 2)
+            XCTAssertEqual(lookup.abc.isNone, true)
+            
+            lookup["url"] = 2
+            XCTAssertEqual(lookup.url.int, 2)
+            
+            lookup["url"] = "https://github.com/iwecon"
+            lookup.url += "/lookup"
+            XCTAssertEqual(lookup.url.string, "https://github.com/iwecon/lookup")
+            
+            XCTAssertEqual(lookup.hasKey("package"), false)
+            
+            XCTAssertEqual(lookup.hasKey("package.info.type"), false)
+            lookup += ["package": ["info": ["type": 1]]]
+            XCTAssertEqual(lookup.hasKey("package.info.type"), true)
+            XCTAssertEqual(lookup["package.info.type"].int, 1)
+            
+            XCTAssertEqual(lookup.hasKey("package.info.wow"), false)
+            
+            lookup += """
+{
+    "highlights": "@dynamicMemberLookup"
+}
+"""
+            XCTAssertEqual(lookup.highlights.string, "@dynamicMemberLookup")
+        }
+        try changeValue()
+        
         #if os(iOS)
         func uiView() throws {
             let view = UIView()
