@@ -138,6 +138,31 @@ try await req.client.post(uri, headers: headers) { inoutReq in
 }
 ```
 
+*setNull & Compact Map Values*
+```swift
+let json = """
+{
+    "name": "Lookup",
+    "age": 3,
+    "versions": [
+        "2.4.0", "2.0.0", "1.0.0" 
+    ],
+    "birth": "202"
+}
+let lookup = Lookup(json)
+print(lookup.versions.0.string) // -> "2.4.0"
+lookup["versions.0"] = "2.4.1"
+print(lookup.versions.0.string) // -> "2.4.1"
+
+// setNull
+let newLookup = lookup.setNull(keys: ["birth"])
+newLookup.hasKey("birth") // -> true, but value is null(nil)
+
+let compactLookup = newLookup.compactMapValues()
+newLookup.hasKey("birth") // -> false, no key no value
+"""
+```
+
 More usage references `LookupTests.swift`: [LookupTests.swift](https://github.com/iWECon/Lookup/blob/main/Tests/LookupTests/LookupTests.swift)
 
 

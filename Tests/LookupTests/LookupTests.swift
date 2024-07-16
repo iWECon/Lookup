@@ -357,11 +357,11 @@ final class LookupTests: XCTestCase {
             XCTAssertEqual(rejectLookup.age.int, 18)
             
             var aLookup = Lookup(
-                ["name": "wei", "childs":[
+                ["name": "iwecon", "childs":[
                     [
-                        "name": "kai", "id": nil, "age": 18,
+                        "name": "lookup", "id": nil, "age": 18,
                         "childs": [
-                            ["name": "lan", "age": 12, "id": nil]
+                            ["name": "Lookup.dynamicMember", "age": 12, "id": nil]
                         ]
                     ]
                 ]]
