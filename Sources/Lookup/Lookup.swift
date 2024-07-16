@@ -46,7 +46,7 @@ fileprivate func unwrap(_ object: Any?) -> Any {
 
 // MARK: - Lookup
 @dynamicMemberLookup
-public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible, @unchecked Sendable {
+public struct Lookup: @unchecked Sendable {
     
     public enum RawType {
         case none
@@ -76,11 +76,11 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    fileprivate let rawType: RawType
-    fileprivate private(set) var rawDict: [String: Any] = [:]
-    fileprivate private(set) var rawArray: [Any] = []
-    fileprivate private(set) var rawString: String = ""
-    fileprivate private(set) var rawNumber: NSNumber = 0
+    var rawType: RawType
+    var rawDict: [String: Any] = [:]
+    var rawArray: [Any] = []
+    var rawString: String = ""
+    var rawNumber: NSNumber = 0
     
     private init(jsonObject: Any) {
         switch jsonObject {
@@ -201,18 +201,61 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
         }
     }
     
-    private mutating func setNewValue(for dynamicMember: String, value: Lookup) {
+    /**
+     
+     let json = {
+        "name": "Lookup",
+        "age": 18,
+        "versions: [
+            "1.0.0", "1.1.0", "1.2.0", "1.3.0"
+        ]
+     }
+     
+     let lookup = Lookup(json)
+     // > print(lookup.versions.0) -> output: 1.0.0
+     lookup["versions.0"] = "0.0.1"
+     // > print(lookup.versions.0) -> output: 0.0.1
+     // > print(lookup.versions.1) -> output: 1.0.0
+     */
+    private mutating func setNewValue(for dynamicMember: String, value: Lookup, inner: Bool = false) {
+        if dynamicMember.contains(".") {
+            var keys = dynamicMember.components(separatedBy: ".")
+            let finalKey = keys.removeLast()
+            let newKeys = keys.joined(separator: ".")
+            var _value = self[dynamicMember: newKeys]
+            
+            switch _value.rawType {
+            case .none, .number, .string:
+                _value = value
+            case .dict, .object:
+                _value.rawDict[finalKey] = value.rawValue
+            case .array:
+                if inner {
+                    _value.rawArray = [value.rawValue]
+                } else {
+                    if finalKey.isPurnInt, let index = Int(finalKey) {
+                        _value.rawArray.insert(value.rawValue, at: index)
+                    } else {
+                        _value.rawArray = [value.rawValue]
+                    }
+                }
+            }
+            
+            setNewValue(for: newKeys, value: _value, inner: true)
+            return
+        }
+        
         switch rawType {
-        case .none:
-            break
+        case .none, .number, .string:
+            self = value
         case .dict, .object:
             rawDict[dynamicMember] = value.rawValue
         case .array:
-            rawArray = value.rawArray
-        case .number:
-            rawNumber = value.rawNumber
-        case .string:
-            rawString = value.rawString
+            if dynamicMember.isPurnInt, let index = Int(dynamicMember) {
+                rawArray.insert(value.rawValue, at: index)
+            } else {
+                rawArray = value.rawArray
+            }
         }
     }
     
@@ -250,34 +293,6 @@ public struct Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConv
             return .null
         }
     }
-    
-    private func castValueToString(value: Any) -> String {
-        if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: .prettyPrinted),
-           let str = String(data: data, encoding: .utf8)
-        {
-            return str
-        }
-        return "Can not cast value to string"
-    }
-    
-    public var description: String {
-        let desc: String
-        switch rawType {
-        case .dict, .object:
-            desc = castValueToString(value: rawDict)
-        case .array:
-            desc = castValueToString(value: rawArray)
-        case .number:
-            desc = "\(rawNumber)"
-        case .string:
-            desc = "\(rawValue)"
-        case .none:
-            desc = "nil"
-        }
-        return desc
-    }
-    
-    public var debugDescription: String { description }
     
     fileprivate static var null: Lookup { Lookup(NSNull()) }
     
@@ -823,6 +838,90 @@ extension Lookup: Codable {
             try container.encode(jsonValueDictValue)
         default:
             break
+        }
+    }
+}
+
+// MARK: Description
+extension Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
+    
+    private func castValueToString(value: Any) -> String {
+        if #available(macOS 10.15, *) {
+            if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted, .fragmentsAllowed, .withoutEscapingSlashes]),
+               let str = String(data: data, encoding: .utf8)
+            {
+                return str
+            }
+        } else {
+            // Fallback on earlier versions
+            if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted, .fragmentsAllowed]),
+               let str = String(data: data, encoding: .utf8)
+            {
+                return str
+            }
+        }
+        return "Can not cast value to string"
+    }
+    
+    public var description: String {
+        let desc: String
+        switch rawType {
+        case .dict, .object:
+            desc = castValueToString(value: rawDict)
+        case .array:
+            desc = castValueToString(value: rawArray)
+        case .number:
+            desc = "\(rawNumber)"
+        case .string:
+            desc = "\(rawValue)"
+        case .none:
+            desc = "nil"
+        }
+        return desc
+    }
+    
+    public var debugDescription: String { description }
+    
+}
+
+// MARK: - Filter
+extension Lookup {
+    
+    public func keep(keys: [String]) -> Lookup {
+        let res = keys.map { key -> (String, Any?) in
+            (key, self[key].rawValue)
+        }
+        return Lookup(Dictionary(uniqueKeysWithValues: res))
+    }
+    
+    public func setNull(keys: [String]) -> Lookup {
+        var new = self
+        for key in keys {
+            new[dynamicMember: key] = nil
+        }
+        return new
+    }
+    
+    public func compactMapValues(keepEmptyValue: Bool = false) -> Lookup {
+        switch rawType {
+        case .none, .number:
+            return self
+        case .string:
+            return self
+        case .array:
+            let map = rawArray.map { value in
+                Lookup(value).compactMapValues()
+            }
+            return Lookup(map)
+        case .object, .dict:
+            let map = rawDict.compactMap { (k: String, v: Any) -> (String, Any)? in
+                let vl = Lookup(v)
+                if vl.isNone || (keepEmptyValue && vl.isEmpty) {
+                    return nil
+                }
+                return (k, vl.compactMapValues())
+            }
+            return Lookup(Dictionary(uniqueKeysWithValues: map))
         }
     }
 }
