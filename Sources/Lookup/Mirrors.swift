@@ -33,7 +33,11 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     let mirror = Mirror(reflecting: reflecting)
     for child in mirror.children {
         if let label = child.label, !label.isEmpty {
-            map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : mirrorValue(child.value)
+            if let unwrap = reflecting as? LookupUnwrap, let unwrapped = unwrap.lookupUnwrap(key: label, value: child.value) {
+                map[label] = mirrorValue(unwrapped)
+            } else {
+                map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : mirrorValue(child.value)
+            }
         }
         each?(child.label, child.value)
     }
@@ -42,7 +46,11 @@ public func mirrors(reflecting: Any?, _ each: ((_: String?, _: Any) -> Void)? = 
     while superMirror != nil {
         for child in superMirror!.children {
             if let label = child.label, !label.isEmpty {
-                map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : mirrorValue(child.value)
+                if let unwrap = reflecting as? LookupUnwrap, let unwrapped = unwrap.lookupUnwrap(key: label, value: child.value) {
+                    map[label] = mirrorValue(unwrapped)
+                } else {
+                    map[label] = canMirrorInto(child.value) ? mirrors(reflecting: child.value, each) : mirrorValue(child.value)
+                }
             }
             each?(child.label, child.value)
         }

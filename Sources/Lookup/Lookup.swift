@@ -20,6 +20,8 @@ fileprivate func unwrap(_ object: Any?) -> Any {
     switch object {
     case let lookup as Lookup:
         return unwrap(lookup.rawValue)
+    case let lookupRawValue as LookupRawValue:
+        return lookupRawValue.lookupRawValue
     case let number as NSNumber:
         return number
     case let str as String:
@@ -639,6 +641,13 @@ public extension Lookup {
         default:
             return []
         }
+    }
+    
+    var uuid: UUID? {
+        if let string {
+            return UUID(uuidString: string)
+        }
+        return nil
     }
     
     var lookup: Lookup {
