@@ -238,11 +238,10 @@ final class LookupTests: XCTestCase {
             
             lookup["address"] = "in Hangzhou"
             XCTAssertEqual(lookup.address.string, "in Hangzhou")
-
-            // TODO: dynamicMember change
+            
             lookup["list.0"] = "d"
-            XCTAssertNotEqual(lookup.list.0.string, "d")
-
+            XCTAssertEqual(lookup.list.0.string, "d")
+            
             let jsonData = try JSONEncoder().encode(lookup)
             let _jsonString = String(data: jsonData, encoding: .utf8)
             XCTAssertNotNil(_jsonString)
@@ -324,6 +323,73 @@ final class LookupTests: XCTestCase {
             XCTAssertEqual(lookup.highlights.string, "@dynamicMemberLookup")
         }
         try changeValue()
+        
+        func testSelect() throws {
+            
+            struct User {
+                let id: Int
+                let name: String
+                let age: Int
+            }
+            let user = User(id: 1, name: "wei", age: 18)
+            let lookup = Lookup(user)
+            let keepLookup = lookup.keep(keys: ["name"])
+            
+            XCTAssertEqual(keepLookup.id.isNone, true)
+            XCTAssertEqual(keepLookup.name.string, "wei")
+            /**
+             {
+                id: xxx,
+                cars: [Car]
+             }
+             let lookup = Lookup(cars)
+             
+             let carsLookup = Lookup(cars)
+             carsLookup.0.name = .null
+             carsLookup.compactMapValues()
+             
+             lookup.cars = carsLookup
+             */
+            let rejectLookup = lookup.setNull(keys: ["id"])
+                .compactMapValues()
+            XCTAssertEqual(rejectLookup.id.isNone, true)
+            XCTAssertEqual(rejectLookup.name.string, "wei")
+            XCTAssertEqual(rejectLookup.age.int, 18)
+            
+            var aLookup = Lookup(
+                ["name": "iwecon", "childs":[
+                    [
+                        "name": "lookup", "id": nil, "age": 18,
+                        "childs": [
+                            ["name": "Lookup.dynamicMember", "age": 12, "id": nil]
+                        ]
+                    ]
+                ]]
+            )
+                .compactMapValues()
+            XCTAssertEqual(aLookup.hasKey("childs.0.id"), false)
+            XCTAssertEqual(aLookup.hasKey("childs.0.age"), true)
+            XCTAssertEqual(aLookup.hasKey("childs.0.childs.0.id"), false)
+            XCTAssertEqual(aLookup.childs.0.age.int, 18)
+            XCTAssertEqual(aLookup.childs.0.childs.0.name.string, "Lookup.dynamicMember")
+            
+            aLookup["childs.0.id"] = "1"
+            XCTAssertEqual(aLookup.childs.0.id.string, "1")
+            
+            let anlookup = aLookup.setNull(keys: ["childs.0.age"])
+            XCTAssertEqual(anlookup.hasKey("childs.0.age"), true)
+            var canlookup = anlookup.compactMapValues()
+            XCTAssertEqual(canlookup.hasKey("childs.0.age"), false)
+            
+            canlookup["childs.0.childs.0.id"] = 1
+            canlookup["childs.0.childs.0.age"] = 18
+            XCTAssertEqual(canlookup.childs.0.childs.0.id.int, 1)
+            XCTAssertEqual(canlookup.childs.0.childs.0.age.int, 18)
+            
+            canlookup["childs.0.childs.0.birth"] = "2024"
+            XCTAssertEqual(canlookup.childs.0.childs.0.birth.string, "2024")
+        }
+        try testSelect()
         
         #if os(iOS)
         func uiView() throws {
