@@ -371,7 +371,7 @@ final class LookupTests: XCTestCase {
             XCTAssertEqual(aLookup.hasKey("childs.0.age"), true)
             XCTAssertEqual(aLookup.hasKey("childs.0.childs.0.id"), false)
             XCTAssertEqual(aLookup.childs.0.age.int, 18)
-            XCTAssertEqual(aLookup.childs.0.childs.0.name.string, "lan")
+            XCTAssertEqual(aLookup.childs.0.childs.0.name.string, "Lookup.dynamicMember")
             
             aLookup["childs.0.id"] = "1"
             XCTAssertEqual(aLookup.childs.0.id.string, "1")
