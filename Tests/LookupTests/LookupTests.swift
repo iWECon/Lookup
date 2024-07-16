@@ -35,6 +35,21 @@ final class Species: AnimalClass {
     let start: Date = Date()
 }
 
+struct UnwrapModel: LookupUnwrap {
+    let id: UUID
+    let age: Int
+    let type: AnimalType
+    let intType: AnimalIntType
+    let date: Date
+    
+    func lookupUnwrap(key: String, value: Any) -> Any? {
+        if key == "date" {
+            return date.timeIntervalSince1970
+        }
+        return value
+    }
+}
+
 final class LookupTests: XCTestCase {
     
     func tests() throws {
@@ -327,11 +342,11 @@ final class LookupTests: XCTestCase {
         func testSelect() throws {
             
             struct User {
-                let id: Int
+                let id: UUID = UUID()
                 let name: String
                 let age: Int
             }
-            let user = User(id: 1, name: "wei", age: 18)
+            let user = User(name: "wei", age: 18)
             let lookup = Lookup(user)
             let keepLookup = lookup.keep(keys: ["name"])
             
@@ -390,6 +405,13 @@ final class LookupTests: XCTestCase {
             XCTAssertEqual(canlookup.childs.0.childs.0.birth.string, "2024")
         }
         try testSelect()
+        
+        func testUnwrap() throws {
+            let model = UnwrapModel(id: UUID(), age: 1, type: .cat, intType: .cat, date: Date())
+            let lookup = Lookup(model)
+            print(lookup)
+        }
+        try testUnwrap()
         
         #if os(iOS)
         func uiView() throws {
