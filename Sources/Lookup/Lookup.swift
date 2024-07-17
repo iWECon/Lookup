@@ -907,7 +907,7 @@ extension Lookup {
         return new
     }
     
-    public func compactMapValues(keepEmptyValue: Bool = false) -> Lookup {
+    public func compactMapValues(keepKeyOfEmptyValue: Bool = false) -> Lookup {
         switch rawType {
         case .none, .number:
             return self
@@ -915,16 +915,16 @@ extension Lookup {
             return self
         case .array:
             let map = rawArray.map { value in
-                Lookup(value).compactMapValues(keepEmptyValue: keepEmptyValue)
+                Lookup(value).compactMapValues(keepKeyOfEmptyValue: keepKeyOfEmptyValue)
             }
             return Lookup(map)
         case .object, .dict:
             let map = rawDict.compactMap { (k: String, v: Any) -> (String, Any)? in
                 let vl = Lookup(v)
-                if vl.isNone || (keepEmptyValue && vl.isEmpty) {
+                if vl.isNone || (!keepKeyOfEmptyValue && vl.isEmpty) {
                     return nil
                 }
-                return (k, vl.compactMapValues(keepEmptyValue: keepEmptyValue))
+                return (k, vl.compactMapValues(keepKeyOfEmptyValue: keepKeyOfEmptyValue))
             }
             return Lookup(Dictionary(uniqueKeysWithValues: map))
         }
