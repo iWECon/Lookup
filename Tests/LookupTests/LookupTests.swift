@@ -372,14 +372,16 @@ final class LookupTests: XCTestCase {
             XCTAssertEqual(rejectLookup.age.int, 18)
             
             var aLookup = Lookup(
-                ["name": "iwecon", "childs":[
-                    [
-                        "name": "lookup", "id": nil, "age": 18,
-                        "childs": [
-                            ["name": "Lookup.dynamicMember", "age": 12, "id": nil]
+                [
+                    "name": "iwecon", "childs":[
+                        [
+                            "name": "lookup", "id": nil, "age": 18,
+                            "childs": [
+                                ["name": "Lookup.dynamicMember", "age": 12, "id": nil]
+                            ]
                         ]
                     ]
-                ]]
+                ]
             )
                 .compactMapValues()
             XCTAssertEqual(aLookup.hasKey("childs.0.id"), false)
@@ -410,6 +412,15 @@ final class LookupTests: XCTestCase {
             let model = UnwrapModel(id: UUID(), age: 1, type: .cat, intType: .cat, date: Date())
             let lookup = Lookup(model)
             print(lookup)
+            
+            let json = """
+{
+    "user": { "id": null },
+    "id": 1
+}
+"""
+            let clookup = Lookup(json).compactMapValues()
+            XCTAssertEqual(clookup.hasKey("user"), false)
         }
         try testUnwrap()
         

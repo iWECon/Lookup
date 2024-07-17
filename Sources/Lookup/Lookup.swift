@@ -924,7 +924,11 @@ extension Lookup {
                 if vl.isNone || (!keepKeyOfEmptyValue && vl.isEmpty) {
                     return nil
                 }
-                return (k, vl.compactMapValues(keepKeyOfEmptyValue: keepKeyOfEmptyValue))
+                let newValue = vl.compactMapValues(keepKeyOfEmptyValue: keepKeyOfEmptyValue)
+                if (!keepKeyOfEmptyValue && newValue.isEmpty) {
+                    return nil
+                }
+                return (k, newValue)
             }
             return Lookup(Dictionary(uniqueKeysWithValues: map))
         }
