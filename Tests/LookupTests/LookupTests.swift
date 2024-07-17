@@ -5,11 +5,11 @@ import Foundation
 import UIKit
 #endif
 
-enum AnimalType {
+enum AnimalType: String, Codable {
     case dog, cat
 }
 
-enum AnimalIntType: Int, LookupEnum {
+enum AnimalIntType: Int, LookupEnum, Codable {
     case dog = 0, cat
     
     var lookupRawValue: Any {
