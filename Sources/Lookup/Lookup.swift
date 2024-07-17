@@ -700,15 +700,11 @@ public extension Lookup {
 // MARK: Decode
 extension Lookup {
     
-    public enum DecodeError: Swift.Error {
-        case invalidJSONData
-    }
-    
-    public func decode<D>(as decodable: D.Type, using decoder: JSONDecoder = JSONDecoder()) throws -> D where D: Decodable {
-        guard let jsonData else {
-            throw DecodeError.invalidJSONData
+    public func decode<D>(as decodable: D.Type, using decoder: JSONDecoder = JSONDecoder()) throws -> D? where D: Decodable {
+        guard let encoded = try? JSONEncoder().encode(self) else {
+            return nil
         }
-        return try decoder.decode(D.self, from: jsonData)
+        return try decoder.decode(D.self, from: encoded)
     }
 }
 
@@ -919,7 +915,7 @@ extension Lookup {
             return self
         case .array:
             let map = rawArray.map { value in
-                Lookup(value).compactMapValues()
+                Lookup(value).compactMapValues(keepEmptyValue: keepEmptyValue)
             }
             return Lookup(map)
         case .object, .dict:
@@ -928,7 +924,7 @@ extension Lookup {
                 if vl.isNone || (keepEmptyValue && vl.isEmpty) {
                     return nil
                 }
-                return (k, vl.compactMapValues())
+                return (k, vl.compactMapValues(keepEmptyValue: keepEmptyValue))
             }
             return Lookup(Dictionary(uniqueKeysWithValues: map))
         }
