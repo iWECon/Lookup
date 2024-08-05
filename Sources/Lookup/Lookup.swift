@@ -851,6 +851,7 @@ extension Lookup: Codable {
 extension Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
     
     private func castValueToString(value: Any) -> String {
+        #if os(macOS)
         if #available(macOS 10.15, *) {
             if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted, .fragmentsAllowed, .withoutEscapingSlashes]),
                let str = String(data: data, encoding: .utf8)
@@ -865,6 +866,28 @@ extension Lookup: Swift.CustomStringConvertible, Swift.CustomDebugStringConverti
                 return str
             }
         }
+        #elseif os(iOS)
+        if #available(iOS 13, *) {
+            if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted, .fragmentsAllowed, .withoutEscapingSlashes]),
+               let str = String(data: data, encoding: .utf8)
+            {
+                return str
+            }
+        } else {
+            // Fallback on earlier versions
+            if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted, .fragmentsAllowed]),
+               let str = String(data: data, encoding: .utf8)
+            {
+                return str
+            }
+        }
+        #else
+        if let data: Data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted, .fragmentsAllowed]),
+           let str = String(data: data, encoding: .utf8)
+        {
+            return str
+        }
+        #endif
         return "Can not cast value to string"
     }
     
