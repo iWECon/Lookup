@@ -475,6 +475,8 @@ public extension Lookup {
             return "\(rawNumber)"
         case .string:
             return rawString
+        case .bool:
+            return rawBool ? "true" : "false"
         default:
             return nil
         }

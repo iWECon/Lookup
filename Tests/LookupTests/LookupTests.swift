@@ -559,4 +559,35 @@ struct LookupTests {
 """)
     }
     #endif
+    
+    @Test("Test true/false to string")
+    func testTrueFalseToString() throws {
+        let json = """
+{
+    "status": "success",
+    "country": "新加坡",
+    "countryCode": "SG",
+    "region": "03",
+    "regionName": "North West",
+    "city": "新加坡",
+    "zip": "858877",
+    "timezone": "Asia/Singapore",
+    "currency": "SGD",
+    "isp": "Alibaba (US) Technology Co., Ltd.",
+    "org": "Alibaba.com LLC",
+    "as": "AS45102 Alibaba (US) Technology Co., Ltd.",
+    "proxy": false,
+    "hosting": true
+}
+"""
+        let lookup = Lookup(json)
+        #expect(lookup.proxy.string == "false")
+        #expect(lookup.hosting.string == "true")
+        
+        #expect(lookup.proxy.int == 0)
+        #expect(lookup.hosting.int == 1)
+        
+        #expect(lookup.proxy.bool == false)
+        #expect(lookup.hosting.bool == true)
+    }
 }
