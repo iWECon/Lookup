@@ -590,4 +590,20 @@ struct LookupTests {
         #expect(lookup.proxy.bool == false)
         #expect(lookup.hosting.bool == true)
     }
+    
+    @Test("Test with dot in key")
+    func testWithDotInKey() async throws {
+        let json = """
+{
+    "ek.ok": 1,
+    "el.msg": "test"
+}
+"""
+        let lookup = Lookup(json)
+        #expect(lookup.ek.ok.isNone)
+        #expect(lookup["ek.ok"].bool == true)
+        
+        #expect(lookup.el.msg.isNone)
+        #expect(lookup["el.msg"].string == "test")
+    }
 }

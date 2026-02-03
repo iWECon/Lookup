@@ -191,34 +191,59 @@ public struct Lookup: @unchecked Sendable {
         if dynamicMember.contains(".") {
             var keys = dynamicMember.components(separatedBy: ".")
             
+            var val: Lookup = .null
             if let key = keys.first {
                 switch rawType {
                 case .none:
-                    return .null
+                    val = .null
                     
                 case .bool:
-                    return Lookup(rawBool)
+                    val = Lookup(rawBool)
                 
                 case .dict, .object:
-                    let value: Any = rawDict[key, default: NSNull()]
-                    let innerLookup = Lookup(value)
-                    keys.removeFirst()
-                    
-                    let newKey: String = keys.joined(separator: ".")
-                    return innerLookup[dynamicMember: newKey]
+                    if rawDict.keys.contains(key) {
+                        let value: Any = rawDict[key, default: NSNull()]
+                        let innerLookup = Lookup(value)
+                        keys.removeFirst()
+                        
+                        let newKey: String = keys.joined(separator: ".")
+                        val = innerLookup[dynamicMember: newKey]
+                    }
                 case .array, .string:
                     if key.isPurnInt, let index = Int(key) {
                         keys.removeFirst()
                         
                         let newKey: String = keys.joined(separator: ".")
-                        return self[index][dynamicMember: newKey]
+                        val = self[index][dynamicMember: newKey]
                     }
-                    return .null
                 default:
-                    return .null
+                    val = .null
                 }
             }
-            return .null
+            
+            if val.isNone, dynamicMember != keys.first {
+                // use merged key re-search
+                switch rawType {
+                case .none:
+                    val = .null
+                    
+                case .bool:
+                    val = Lookup(rawBool)
+                
+                case .dict, .object:
+                    if rawDict.keys.contains(dynamicMember) {
+                        let value: Any = rawDict[dynamicMember, default: NSNull()]
+                        val = Lookup(value)
+                    }
+                case .array, .string:
+                    if dynamicMember.isPurnInt, let index = Int(dynamicMember) {
+                        val = self[index]
+                    }
+                default:
+                    val = .null
+                }
+            }
+            return val
         }
         
         switch rawType {
