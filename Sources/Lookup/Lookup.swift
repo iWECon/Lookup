@@ -68,12 +68,10 @@ public struct Lookup: @unchecked Sendable {
             switch rawType {
             case .none:
                 return NSNull()
-            case .dict:
+            case .dict, .object:
                 return rawDict
             case .array:
                 return rawArray
-            case .object:
-                return rawDict
             case .number:
                 return rawNumber
             case .string:
@@ -365,7 +363,7 @@ public struct Lookup: @unchecked Sendable {
         switch (self.rawType, other.rawType) {
         case (.dict, _):
             switch other.rawType {
-            case .dict:
+            case .dict, .object:
                 self.rawDict.merge(other.rawDict, uniquingKeysWith: { $1 })
             default:
                 self.rawDict.merge(other.dict ?? [:], uniquingKeysWith: { $1 })
@@ -734,7 +732,7 @@ public extension Lookup {
         switch rawType {
         case .array:
             return try? JSONSerialization.data(withJSONObject: rawArray)
-        case .dict:
+        case .dict, .object:
             return try? JSONSerialization.data(withJSONObject: rawDict)
         case .string:
             return rawString.data(using: .utf8)
@@ -748,7 +746,7 @@ public extension Lookup {
         switch rawType {
         case .array:
             return rawArray.isEmpty
-        case .dict:
+        case .dict, .object:
             return rawDict.isEmpty
         case .string:
             return rawString.isEmpty
@@ -762,7 +760,7 @@ public extension Lookup {
         switch rawType {
         case .array:
             return rawArray.count
-        case .dict:
+        case .dict, .object:
             return rawDict.count
         case .string:
             return rawString.count
