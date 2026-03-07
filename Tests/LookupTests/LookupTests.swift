@@ -33,12 +33,8 @@ enum AnimalType: String, Codable {
     case dog, cat
 }
 
-enum AnimalIntType: Int, LookupEnum, Codable {
+enum AnimalIntType: Int, Codable {
     case dog = 0, cat
-    
-    var lookupRawValue: Any {
-        self.rawValue
-    }
 }
 
 struct Animal {
@@ -605,5 +601,19 @@ struct LookupTests {
         
         #expect(lookup.el.msg.isNone)
         #expect(lookup["el.msg"].string == "test")
+    }
+    
+    @Test("Test Dictionary with Enum as Key")
+    func testEnum() async throws {
+        enum Source: String, Codable {
+            case like = "lIKe", google = "gOOgle"
+        }
+        let dict = [Source.like: 10, Source.google: 100]
+        var lookup = Lookup(dict)
+        #expect(lookup.lIKe.int == 10)
+        #expect(lookup.gOOgle.int == 100)
+        
+        lookup["lIKe"] = 20
+        #expect(lookup.lIKe.int == 20)
     }
 }

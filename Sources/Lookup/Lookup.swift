@@ -41,10 +41,31 @@ fileprivate func unwrap(_ object: Any?) -> Any {
         }
         return d
         
+        
     case let array as [Any]:
         return array.map(unwrap)
         
+    case let dictionary as [AnyHashable: Any]:
+        var d = [String: Any]()
+        dictionary.forEach { pair in
+            // 尝试将 Key 转为 String。如果是枚举，取其 rawValue；否则使用描述字符串
+            let keyString: String
+            if let rawKey = (pair.key as? (any RawRepresentable))?.rawValue {
+                keyString = String(describing: rawKey)
+            } else {
+                keyString = String(describing: pair.key)
+            }
+            d[keyString] = unwrap(pair.value)
+        }
+        return d
+        // 如果上面的 case 没能完全覆盖 RawRepresentable 字典，可以增加一个专门处理泛型的逻辑
+        // 但在非泛型函数中，AnyHashable 已经能捕获绝大多数情况。
+        
     default:
+        // 处理单体 RawRepresentable 类型 (例如直接传入一个 Enum 成员)
+        if let rawRepresentable = object as? (any RawRepresentable) {
+            return unwrap(rawRepresentable.rawValue)
+        }
         return object ?? NSNull()
     }
 }
@@ -90,7 +111,10 @@ public struct Lookup: @unchecked Sendable {
     var rawNumber: NSNumber = 0
     
     private init(jsonObject: Any) {
-        switch jsonObject {
+        // 预处理：如果是枚举，先取其 rawValue
+        let unwrappedObject = (jsonObject as? (any RawRepresentable))?.rawValue ?? jsonObject
+        
+        switch unwrappedObject {
         case Optional<Any>.none:
             self.rawType = .none
         case _ as NSNull:
@@ -177,6 +201,21 @@ public struct Lookup: @unchecked Sendable {
         default:
             self.init(jsonObject: object)
         }
+    }
+    
+    // 支持 [AnyHashable: Any]
+    public init(_ hashableDictionary: [AnyHashable: Any]) {
+        self.init(jsonObject: hashableDictionary)
+    }
+    
+    // 支持枚举作为 Key 的字典: [SomeEnum: Any]
+    // 这里利用协议组合来捕捉 RawRepresentable 且 Key 为 Hashable 的情况
+    public init<K: RawRepresentable & Hashable>(_ enumDictionary: [K: Any]) {
+        var d = [String: Any]()
+        for (key, value) in enumDictionary {
+            d[String(describing: key.rawValue)] = value
+        }
+        self.init(jsonObject: d)
     }
     
     // # Resolve build warning:
