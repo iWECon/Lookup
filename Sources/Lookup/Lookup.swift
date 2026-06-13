@@ -1,11 +1,5 @@
 import Foundation
 
-extension Array {
-    var countIndex: Int {
-        count - 1
-    }
-}
-
 // MARK: - Helper for String
 fileprivate extension String {
     var isPurnInt: Bool {
@@ -113,8 +107,8 @@ public struct Lookup: @unchecked Sendable {
                 self.rawString = str
                 self.rawType = .string
                 
-            case let dictionry as [String: Any]:
-                self.rawDict = dictionry
+            case let dictionary as [String: Any]:
+                self.rawDict = dictionary
                 self.rawType = .dict
                 
             case let array as [Any]:
@@ -345,14 +339,12 @@ public struct Lookup: @unchecked Sendable {
     public subscript (_ memberIndex: Int) -> Lookup {
         switch rawType {
         case .string:
-            if let convertedArray = array, memberIndex < convertedArray.count {
+            if let convertedArray = array, convertedArray.indices.contains(memberIndex) {
                 return Lookup(convertedArray[memberIndex])
             }
             return .null
         case .array:
-            if memberIndex > rawArray.countIndex {
-                return .null
-            }
+            guard rawArray.indices.contains(memberIndex) else { return .null }
             return Lookup(rawArray[memberIndex])
         default:
             return .null
@@ -473,12 +465,18 @@ public extension Lookup {
                     keys.removeFirst()
                     
                     let newKey: String = keys.joined(separator: ".")
+                    if newKey.isEmpty {
+                        return innerLookup.hasKey(finalKey)
+                    }
                     return innerLookup[dynamicMember: newKey].hasKey(finalKey)
                 case .array, .string:
                     if key.isPurnInt, let index = Int(key) {
                         keys.removeFirst()
                         
                         let newKey: String = keys.joined(separator: ".")
+                        if newKey.isEmpty {
+                            return self[index].hasKey(finalKey)
+                        }
                         return self[index][dynamicMember: newKey].hasKey(finalKey)
                     }
                     return false

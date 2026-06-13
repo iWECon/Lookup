@@ -606,4 +606,224 @@ struct LookupTests {
         #expect(lookup.el.msg.isNone)
         #expect(lookup["el.msg"].string == "test")
     }
+
+    // MARK: - New tests
+
+    @Test("Test LookupRawValue Date and UUID")
+    func testLookupRawValue() throws {
+        let uuid = UUID()
+        let date = Date(timeIntervalSince1970: 1_234_567_890)
+        let dict: [String: Any] = [
+            "id": uuid,
+            "created": date
+        ]
+        let lookup = Lookup(dict)
+        #expect(lookup.id.string == uuid.uuidString)
+        #expect(lookup.created.double == 1_234_567_890)
+    }
+
+    @Test("Test uuid accessor")
+    func testUuidAccessor() throws {
+        let uuid = UUID()
+        let lookup = Lookup(uuid.uuidString)
+        #expect(lookup.uuid != nil)
+        #expect(lookup.uuid == uuid)
+
+        let noUuid = Lookup(123)
+        #expect(noUuid.uuid == nil)
+    }
+
+    @Test("Test isEmpty and count")
+    func testIsEmptyAndCount() throws {
+        let emptyDict = Lookup([:])
+        #expect(emptyDict.isEmpty == true)
+        #expect(emptyDict.count == 0)
+
+        let dict = Lookup(["a": 1, "b": 2])
+        #expect(dict.isEmpty == false)
+        #expect(dict.count == 2)
+
+        let emptyArray = Lookup([])
+        #expect(emptyArray.isEmpty == true)
+        #expect(emptyArray.count == 0)
+
+        let array = Lookup([1, 2, 3])
+        #expect(array.isEmpty == false)
+        #expect(array.count == 3)
+
+        let string = Lookup("hello")
+        #expect(string.isEmpty == false)
+        #expect(string.count == 5)
+    }
+
+    @Test("Test jsonData accessor")
+    func testJsonData() throws {
+        let dict = Lookup(["name": "test"])
+        let data = dict.jsonData
+        #expect(data != nil)
+        let parsed = try JSONSerialization.jsonObject(with: data!) as? [String: Any]
+        #expect(parsed?["name"] as? String == "test")
+
+        let array = Lookup([1, 2, 3])
+        #expect(array.jsonData != nil)
+
+        let string = Lookup("plain text")
+        #expect(string.jsonData != nil)
+
+        let number = Lookup(42)
+        #expect(number.jsonData == nil)
+    }
+
+    @Test("Test decode method")
+    func testDecodeMethod() throws {
+        let lookup = Lookup(["id": "E621E1F8-C36C-495A-93FC-0C247A3E6E5F", "t_ext": "hello"])
+        let decoded: CodableObject? = try lookup.decode(as: CodableObject.self)
+        #expect(decoded != nil)
+        #expect(decoded?.text == "hello")
+    }
+
+    @Test("Test dictLookup and arrayLookup")
+    func testDictArrayLookup() throws {
+        let dictLookup = Lookup(["key": "value"]).dictLookup
+        #expect(dictLookup.key.string == "value")
+
+        let arrayLookup = Lookup(["a", "b", "c"]).arrayLookup
+        #expect(arrayLookup.count == 3)
+        #expect(arrayLookup[0].string == "a")
+
+        let nullLookup = Lookup(NSNull())
+        #expect(nullLookup.dictLookup.isNone)
+        #expect(nullLookup.arrayLookup.isEmpty)
+    }
+
+    @Test("Test ExpressibleBy literals")
+    func testExpressibleByLiterals() throws {
+        let array: Lookup = [1, 2, 3]
+        #expect(array.0.int == 1)
+        #expect(array.2.int == 3)
+
+        let str: Lookup = "hello"
+        #expect(str.string == "hello")
+
+        let int: Lookup = 42
+        #expect(int.int == 42)
+
+        let float: Lookup = 3.14
+        #expect(float.double == 3.14)
+
+        let bool: Lookup = true
+        #expect(bool.bool == true)
+
+        let nilValue: Lookup = nil
+        #expect(nilValue.isNone)
+    }
+
+    @Test("Test + operator type mismatch returns .null")
+    func testOperatorTypeMismatch() throws {
+        let result = Lookup([1, 2, 3]) + Lookup(["key": "value"])
+        #expect(result.isNone)
+    }
+
+    @Test("Test hasKey edge cases")
+    func testHasKeyEdgeCases() throws {
+        let lookup = Lookup(["a": ["b": ["c": 1]]])
+        #expect(lookup.hasKey("a"))
+        #expect(lookup.hasKey("a.b"))
+        #expect(lookup.hasKey("a.b.c"))
+        #expect(lookup.hasKey("x") == false)
+        #expect(lookup.hasKey("") == false)
+        #expect(lookup.hasKey("a.b.c.d") == false)
+    }
+
+    @Test("Test keep with empty keys")
+    func testKeepEmptyKeys() throws {
+        let lookup = Lookup(["a": 1, "b": 2])
+        let empty = lookup.keep(keys: [])
+        #expect(empty.isEmpty == true)
+        #expect(empty.count == 0)
+    }
+
+    @Test("Test setNull on non-existent key")
+    func testSetNullNonExistent() throws {
+        let lookup = Lookup(["a": 1])
+        let result = lookup.setNull(keys: ["b"])
+        #expect(result.b.isNone)
+        #expect(result.a.int == 1)
+    }
+
+    @Test("Test compactMapValues with keepKeyOfEmptyValue")
+    func testCompactMapKeepEmpty() throws {
+        let lookup = Lookup([
+            "a": 1,
+            "b": "",
+            "c": []
+        ])
+        let compacted = lookup.compactMapValues(keepKeyOfEmptyValue: true)
+        #expect(compacted.hasKey("a"))
+        #expect(compacted.hasKey("b"))
+        #expect(compacted.hasKey("c"))
+    }
+
+    @Test("Test string subscript with non-existent key")
+    func testStringSubscriptNonExistent() throws {
+        let lookup = Lookup(["a": 1])
+        #expect(lookup["b"].isNone)
+        #expect(lookup["a.b.c"].isNone)
+    }
+
+    @Test("Test integer subscript out of bounds")
+    func testIntSubscriptOutOfBounds() throws {
+        let lookup = Lookup([1, 2, 3])
+        #expect(lookup[10].isNone)
+        #expect(lookup[-1].isNone)
+    }
+
+    @Test("Test nested array subscript assignment")
+    func testNestedArraySubscriptAssign() throws {
+        var lookup = Lookup([
+            "matrix": [[1, 2], [3, 4]]
+        ])
+        lookup["matrix.0.0"] = 9
+        #expect(lookup.matrix.0.0.int == 9)
+    }
+
+    @Test("Test init from plain Encodable struct")
+    func testInitFromEncodableStruct() throws {
+        let obj = CodableObject(id: UUID(), text: "from encodable")
+        let lookup = Lookup(obj)
+        #expect(lookup.t_ext.string == "from encodable")
+        #expect(lookup.id.isSome)
+    }
+
+    @Test("Test description for different types")
+    func testDescriptionTypes() throws {
+        let dict = Lookup(["key": "val"])
+        #expect(dict.description.contains("val"))
+
+        let array = Lookup([1, 2])
+        #expect(array.description.contains("1"))
+
+        let num = Lookup(42)
+        #expect(num.description == "42")
+
+        let str = Lookup("hello")
+        #expect(str.description == "hello")
+
+        let bool = Lookup(false)
+        #expect(bool.description == "false")
+
+        let none = Lookup(NSNull())
+        #expect(none.description == "nil")
+    }
+
+    @Test("Test converting string to array/dict when it looks like JSON")
+    func testStringJsonConversion() throws {
+        let jsonArray = Lookup("[1, 2, 3]")
+        #expect(jsonArray.array != nil)
+        #expect(jsonArray.array?.count == 3)
+
+        let jsonDict = Lookup("{\"a\": 1}")
+        #expect(jsonDict.dict != nil)
+        #expect(jsonDict.dict?["a"] as? Int == 1)
+    }
 }
