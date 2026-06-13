@@ -15,6 +15,9 @@ func canMirrorInto(_ reflecting: Any?) -> Bool {
     if let _ = reflecting as? LookupRawValue {
         return false
     }
+    if let _ = reflecting as? (any RawRepresentable) {
+        return false
+    }
     guard let ref = reflecting else { return false }
     let mirror = Mirror(reflecting: ref)
     guard let displayStyle = mirror.displayStyle else { return false }
@@ -29,6 +32,9 @@ func canMirrorInto(_ reflecting: Any?) -> Bool {
 func mirrorValue(_ value: Any) -> Any {
     if let lookupRawValue = value as? LookupRawValue {
         return lookupRawValue.lookupRawValue
+    }
+    if let rawValue = value as? (any RawRepresentable) {
+        return String(describing: rawValue.rawValue)
     }
     let mirror = Mirror(reflecting: value)
     guard mirror.displayStyle == .enum else {
